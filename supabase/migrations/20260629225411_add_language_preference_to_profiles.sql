@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS language_preference TEXT NOT NULL DEFAULT 'fr' CHECK (language_preference IN ('fr', 'en', 'es'));

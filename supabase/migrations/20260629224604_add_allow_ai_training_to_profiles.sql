@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS allow_ai_training BOOLEAN NOT NULL DEFAULT false;

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MotorEcho Premium</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        :root {
+            --obsidian: #0d1515;
+            --cyan-glow: rgba(0, 219, 231, 0.4);
+        }
+        body {
+            background-color: var(--obsidian);
+            color: #dce4e4;
+            font-family: 'Hanken Grotesk', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid transparent;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(0,219,231,0.1)) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: destination-out;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .cyan-glow-text {
+            text-shadow: 0 0 15px var(--cyan-glow);
+        }
+        .premium-gradient-btn {
+            background: linear-gradient(90deg, #00dbe7, #056ced);
+            transition: all 0.3s ease;
+        }
+        .premium-gradient-btn:hover {
+            box-shadow: 0 0 30px var(--cyan-glow);
+            transform: translateY(-2px);
+        }
+        .toggle-active {
+            box-shadow: 0 0 20px rgba(0, 219, 231, 0.3);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#004f54",
+                        "surface-container-low": "#151d1e",
+                        "primary-container": "#00f2ff",
+                        "on-primary-fixed": "#002022",
+                        "tertiary-fixed": "#ffe173",
+                        "primary": "#e1fdff",
+                        "error": "#ffb4ab",
+                        "on-surface-variant": "#b9cacb",
+                        "on-background": "#dce4e4",
+                        "secondary-container": "#056ced",
+                        "outline-variant": "#3a494b",
+                        "surface-container": "#192122",
+                        "surface-bright": "#333b3b",
+                        "on-secondary-fixed": "#001944",
+                        "on-primary-container": "#006a71",
+                        "surface-variant": "#2e3637",
+                        "surface-tint": "#00dbe7",
+                        "surface-container-high": "#232b2c",
+                        "on-tertiary-fixed-variant": "#554500",
+                        "tertiary": "#fff6e4",
+                        "surface": "#0d1515",
+                        "secondary-fixed": "#d9e2ff",
+                        "on-surface": "#dce4e4",
+                        "tertiary-fixed-dim": "#e8c423",
+                        "inverse-surface": "#dce4e4",
+                        "primary-fixed": "#74f5ff",
+                        "surface-dim": "#0d1515",
+                        "secondary-fixed-dim": "#afc6ff",
+                        "on-secondary-container": "#f8f8ff",
+                        "tertiary-container": "#fed83a",
+                        "background": "#0d1515",
+                        "inverse-on-surface": "#2a3232",
+                        "outline": "#849495",
+                        "on-secondary": "#002d6d",
+                        "surface-container-lowest": "#080f10",
+                        "on-error": "#690005",
+                        "surface-container-highest": "#2e3637",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#004299",
+                        "on-tertiary-fixed": "#221b00",
+                        "on-primary": "#00363a",
+                        "on-tertiary": "#3b2f00",
+                        "primary-fixed-dim": "#00dbe7",
+                        "on-tertiary-container": "#725e00",
+                        "secondary": "#afc6ff",
+                        "inverse-primary": "#00696f",
+                        "error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "container-padding-desktop": "40px",
+                        "container-padding-mobile": "20px",
+                        "gutter": "24px",
+                        "stack-sm": "12px"
+                    },
+                    "fontFamily": {
+                        "label-lg": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "label-md": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="antialiased">
+<!-- Background Shader -->
+<div class="fixed inset-0 z-[-1] overflow-hidden opacity-30 pointer-events-none">
+
+</div>
+<!-- Top Navigation -->
+<header class="flex justify-between items-center px-container-padding-mobile md:px-container-padding-desktop h-16 w-full z-50 sticky top-0 bg-surface/60 backdrop-blur-xl border-b border-white/10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">menu</span>
+<h1 class="font-display-lg text-display-lg tracking-tighter text-primary-fixed-dim cyan-glow-text">MotorEcho</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant hidden md:block">search</span>
+<div class="w-8 h-8 rounded-full border border-primary-fixed-dim/30 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional close-up portrait of a high-end automotive technician in a minimalist tech studio. The lighting is cold and atmospheric with cyan highlights reflecting off glossy surfaces in the background. The aesthetic is clean, professional, and sophisticated, matching a premium AI-driven brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-2dzpjYLy-v_e1h6yD919K_STsnY1Cu8_0ShqDF-TMqR-cTa2-9NGDaJ6xzHvpTiazMZv5FZuAOdKAVBKtUepNtgh0VFFwFbMsZNt2fh4DGCusVrMCK6OqLem2HZXMRNRJtTkuEnBttEv9XJKbwSHIDJqr-0pCW3FlZ57pnRSBfSXwAw4-9YYneapAH92Z6ObxySHYvF8-PuvWc8prNYUi_fYv9OdKpA3XLx1lXLfGeGv24wVS29rinj00B3eGtLXNClxry_AfxyT"/>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-container-padding-mobile md:px-container-padding-desktop py-stack-lg relative">
+<!-- Hero Section -->
+<section class="text-center mb-stack-lg">
+<span class="inline-block px-4 py-1 rounded-full border border-primary-fixed-dim/30 bg-primary-fixed-dim/10 text-primary-fixed-dim font-label-lg text-label-lg mb-6">PREMIUM ACCESS</span>
+<h2 class="font-display-lg text-[40px] md:text-[64px] leading-tight mb-4 tracking-tight">Unlock Full <br class="md:hidden"/> <span class="text-primary-fixed-dim cyan-glow-text">Diagnostic Power</span></h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">Access professional-grade AI analysis, predictive maintenance tools, and priority processing for your entire fleet.</p>
+</section>
+<!-- Pricing Toggle -->
+<div class="flex flex-col items-center mb-stack-lg" id="pricing-toggle-container">
+<div class="inline-flex p-1.5 bg-surface-container rounded-full border border-outline-variant/30 relative">
+<button class="px-8 py-2.5 rounded-full font-label-lg text-label-lg z-10 transition-all duration-300 text-primary-fixed-dim toggle-active bg-primary-fixed-dim/10" id="toggle-monthly" onclick="switchPlan('monthly')">Monthly</button>
+<button class="px-8 py-2.5 rounded-full font-label-lg text-label-lg z-10 transition-all duration-300 text-on-surface-variant" id="toggle-yearly" onclick="switchPlan('yearly')"> Yearly <span class="ml-1 text-[10px] text-tertiary-fixed font-bold">SAVE 25%</span></button>
+</div>
+<div class="mt-8 flex items-baseline gap-2">
+<span class="text-on-surface-variant font-label-lg">$</span>
+<span class="font-display-lg text-display-lg text-primary cyan-glow-text" id="display-price">9.99</span>
+<span class="text-on-surface-variant font-label-lg" id="display-period">/ mo</span>
+</div>
+</div>
+<!-- Bento Grid Feature Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter mb-stack-lg">
+<!-- Main Featured Card -->
+<div class="md:col-span-2 glass-card p-stack-md rounded-xl flex flex-col justify-between min-h-[320px]">
+<div>
+<div class="w-12 h-12 bg-primary-container/20 rounded-lg flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-2">Unlimited AI Scans</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Perform high-resolution acoustic and visual diagnostic scans on any vehicle without limits. Get real-time engine health telemetry.</p>
+</div>
+<div class="mt-6 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+<span class="px-3 py-1 bg-surface-container rounded-lg text-[12px] font-medium border border-white/5 whitespace-nowrap">4K ACOUSTIC ANALYSIS</span>
+<span class="px-3 py-1 bg-surface-container rounded-lg text-[12px] font-medium border border-white/5 whitespace-nowrap">REAL-TIME TELEMETRY</span>
+</div>
+</div>
+<div class="glass-card p-stack-md rounded-xl flex flex-col">
+<div class="w-10 h-10 bg-secondary-container/20 rounded-lg flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">build_circle</span>
+</div>
+<h3 class="font-label-lg text-label-lg mb-2">Expert Repair</h3>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">Step-by-step guidance tailored to your specific vehicle model and damage severity.</p>
+</div>
+<div class="glass-card p-stack-md rounded-xl flex flex-col">
+<div class="w-10 h-10 bg-tertiary-container/20 rounded-lg flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-tertiary-fixed-dim" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+</div>
+<h3 class="font-label-lg text-label-lg mb-2">Advanced History</h3>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">Full lifecycle documentation and predictive maintenance scheduling for future resale value.</p>
+</div>
+<div class="md:col-span-2 glass-card p-stack-md rounded-xl flex items-center gap-6">
+<div class="w-16 h-16 bg-primary-fixed-dim/10 rounded-full flex items-center justify-center border border-primary-fixed-dim/20 shrink-0">
+<span class="material-symbols-outlined text-primary-fixed-dim text-3xl">cloud_sync</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md mb-1">Priority Cloud Processing</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Skip the queue. Our specialized GPU clusters process your diagnostic data in under 15 seconds.</p>
+</div>
+</div>
+<div class="md:col-span-2 glass-card p-stack-md rounded-xl flex items-center justify-between overflow-hidden">
+<div class="max-w-[60%]">
+<h3 class="font-headline-md text-headline-md mb-1">Fleet Management</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Sync diagnostics across multiple vehicles. Perfect for collectors and workshop operators.</p>
+</div>
+<div class="w-32 h-32 -mr-8">
+
+</div>
+</div>
+</div>
+<!-- Go Pro Button -->
+<div class="flex justify-center mb-stack-lg">
+<button class="premium-gradient-btn px-16 py-5 rounded-xl font-headline-md text-headline-md text-on-secondary-fixed flex items-center gap-4 group">
+                Go Pro Now
+                <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+<!-- Comparison Table -->
+<section class="max-w-4xl mx-auto mt-stack-lg">
+<h4 class="font-headline-md text-headline-md mb-8 text-center">Compare Plans</h4>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant/30">
+<th class="py-4 font-label-lg text-label-lg text-on-surface-variant">Features</th>
+<th class="py-4 px-6 font-label-lg text-label-lg text-center">Basic</th>
+<th class="py-4 px-6 font-label-lg text-label-lg text-center text-primary-fixed-dim">Premium</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr>
+<td class="py-5 font-body-md text-body-md">AI Acoustic Scans</td>
+<td class="py-5 px-6 text-center text-on-surface-variant">2 / month</td>
+<td class="py-5 px-6 text-center text-primary-fixed-dim">Unlimited</td>
+</tr>
+<tr>
+<td class="py-5 font-body-md text-body-md">Diagnostic Accuracy</td>
+<td class="py-5 px-6 text-center text-on-surface-variant">Standard</td>
+<td class="py-5 px-6 text-center text-primary-fixed-dim font-bold">4K High-Res</td>
+</tr>
+<tr>
+<td class="py-5 font-body-md text-body-md">Repair Guides</td>
+<td class="py-5 px-6 text-center text-on-surface-variant">Generic</td>
+<td class="py-5 px-6 text-center text-primary-fixed-dim">Expert Custom</td>
+</tr>
+<tr>
+<td class="py-5 font-body-md text-body-md">Cloud Sync</td>
+<td class="py-5 px-6 text-center text-on-surface-variant">No</td>
+<td class="py-5 px-6 text-center text-primary-fixed-dim">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</td>
+</tr>
+<tr class="bg-primary-fixed-dim/5">
+<td class="py-5 px-4 font-body-md text-body-md rounded-l-xl">Priority Support</td>
+<td class="py-5 px-6 text-center text-on-surface-variant">7-day delay</td>
+<td class="py-5 px-6 text-center text-primary-fixed-dim rounded-r-xl">Instant Chat</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Footer -->
+<footer class="mt-stack-lg pt-stack-md border-t border-outline-variant/20 flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2">
+<h1 class="font-display-lg text-headline-md tracking-tighter text-primary-fixed-dim">MotorEcho</h1>
+<p class="text-on-surface-variant text-sm ml-4">© 2024 Precision Automotive AI</p>
+</div>
+<div class="flex gap-8">
+<a class="text-on-surface-variant font-label-md hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="text-on-surface-variant font-label-md hover:text-primary transition-colors" href="#">Terms</a>
+<a class="text-on-surface-variant font-label-md hover:text-primary transition-colors" href="#">Contact Support</a>
+</div>
+</footer>
+</main>
+<!-- Navigation Shell (Bottom for Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface-container-lowest/80 backdrop-blur-2xl border-t border-white/10 flex justify-around items-center px-4 py-2 pb-safe">
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60">
+<span class="material-symbols-outlined">directions_car</span>
+<span class="font-label-md text-label-md">Garage</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60">
+<span class="material-symbols-outlined">mic</span>
+<span class="font-label-md text-label-md">Scan</span>
+</div>
+<div class="flex flex-col items-center justify-center text-primary-fixed shadow-[0_-15px_30px_-10px_rgba(0,242,255,0.3)] bg-primary-container/10 rounded-full p-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+<span class="font-label-md text-label-md">Pro</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md text-label-md">History</span>
+</div>
+</nav>
+<script>
+        function switchPlan(plan) {
+            const monthlyBtn = document.getElementById('toggle-monthly');
+            const yearlyBtn = document.getElementById('toggle-yearly');
+            const priceEl = document.getElementById('display-price');
+            const periodEl = document.getElementById('display-period');
+
+            if (plan === 'yearly') {
+                yearlyBtn.classList.add('toggle-active', 'bg-primary-fixed-dim/10', 'text-primary-fixed-dim');
+                yearlyBtn.classList.remove('text-on-surface-variant');
+                monthlyBtn.classList.remove('toggle-active', 'bg-primary-fixed-dim/10', 'text-primary-fixed-dim');
+                monthlyBtn.classList.add('text-on-surface-variant');
+                
+                priceEl.innerText = '89.99';
+                periodEl.innerText = '/ yr';
+            } else {
+                monthlyBtn.classList.add('toggle-active', 'bg-primary-fixed-dim/10', 'text-primary-fixed-dim');
+                monthlyBtn.classList.remove('text-on-surface-variant');
+                yearlyBtn.classList.remove('toggle-active', 'bg-primary-fixed-dim/10', 'text-primary-fixed-dim');
+                yearlyBtn.classList.add('text-on-surface-variant');
+
+                priceEl.innerText = '9.99';
+                periodEl.innerText = '/ mo';
+            }
+        }
+    </script>
+</body></html>

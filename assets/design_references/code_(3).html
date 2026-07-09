@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MotorEcho | Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#004f54",
+                    "surface-container-low": "#151d1e",
+                    "primary-container": "#00f2ff",
+                    "on-primary-fixed": "#002022",
+                    "tertiary-fixed": "#ffe173",
+                    "primary": "#e1fdff",
+                    "error": "#ffb4ab",
+                    "on-surface-variant": "#b9cacb",
+                    "on-background": "#dce4e4",
+                    "secondary-container": "#056ced",
+                    "outline-variant": "#3a494b",
+                    "surface-container": "#192122",
+                    "surface-bright": "#333b3b",
+                    "on-secondary-fixed": "#001944",
+                    "on-primary-container": "#006a71",
+                    "surface-variant": "#2e3637",
+                    "surface-tint": "#00dbe7",
+                    "surface-container-high": "#232b2c",
+                    "on-tertiary-fixed-variant": "#554500",
+                    "tertiary": "#fff6e4",
+                    "surface": "#0d1515",
+                    "secondary-fixed": "#d9e2ff",
+                    "on-surface": "#dce4e4",
+                    "tertiary-fixed-dim": "#e8c423",
+                    "inverse-surface": "#dce4e4",
+                    "primary-fixed": "#74f5ff",
+                    "surface-dim": "#0d1515",
+                    "secondary-fixed-dim": "#afc6ff",
+                    "on-secondary-container": "#f8f8ff",
+                    "tertiary-container": "#fed83a",
+                    "background": "#0d1515",
+                    "inverse-on-surface": "#2a3232",
+                    "outline": "#849495",
+                    "on-secondary": "#002d6d",
+                    "surface-container-lowest": "#080f10",
+                    "on-error": "#690005",
+                    "surface-container-highest": "#2e3637",
+                    "on-error-container": "#ffdad6",
+                    "on-secondary-fixed-variant": "#004299",
+                    "on-tertiary-fixed": "#221b00",
+                    "on-primary": "#00363a",
+                    "on-tertiary": "#3b2f00",
+                    "primary-fixed-dim": "#00dbe7",
+                    "on-tertiary-container": "#725e00",
+                    "secondary": "#afc6ff",
+                    "inverse-primary": "#00696f",
+                    "error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "8px",
+                    "stack-md": "24px",
+                    "stack-lg": "48px",
+                    "container-padding-desktop": "40px",
+                    "container-padding-mobile": "20px",
+                    "gutter": "24px",
+                    "stack-sm": "12px"
+            },
+            "fontFamily": {
+                    "label-lg": ["Hanken Grotesk"],
+                    "body-md": ["Hanken Grotesk"],
+                    "headline-lg": ["Hanken Grotesk"],
+                    "display-lg": ["Hanken Grotesk"],
+                    "label-md": ["Hanken Grotesk"],
+                    "headline-lg-mobile": ["Hanken Grotesk"],
+                    "body-lg": ["Hanken Grotesk"],
+                    "headline-md": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.05);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .glow-accent {
+            box-shadow: 0 0 20px rgba(0, 219, 231, 0.1);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen font-body-md selection:bg-primary-fixed-dim/30">
+<!-- Top Navigation Anchor -->
+<header class="bg-surface/60 backdrop-blur-xl dark:bg-surface-container/60 border-b border-white/10 shadow-lg shadow-primary/5 flex justify-between items-center px-container-padding-mobile h-16 w-full z-50 sticky top-0">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim cursor-pointer hover:bg-white/5 transition-colors p-2 rounded-full">menu</span>
+<h1 class="font-display-lg text-[24px] leading-tight tracking-tighter text-primary-fixed-dim drop-shadow-[0_0_10px_rgba(0,219,231,0.4)]">MotorEcho</h1>
+</div>
+<div class="w-10 h-10 rounded-full border border-primary-fixed-dim/30 overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="A professional high-end portrait of a man with short dark hair and a modern beard, wearing a charcoal grey technical jacket. The background is a blurred high-tech automotive workshop with soft blue and cyan lighting. The aesthetic is clean, professional, and sophisticated, matching a premium automotive AI brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBi7YEseC12pSgP5MrRk1M8yc7y1SoDI_xAjMoBoIVKa5OJhuUf2U3-qxO-LqxrhKSy0jq6ym_AXDkah6mxvQiGKcAVFDIb_J08ztJHeraHw7WTtdBGKuh56GU3R4WQeIDwD13NKGo3DBzXncFjc5_OX32tzHeX1XJvR4ajp6meN5so-hJA5JVWgk0ubbCurzFZyTMCeEmlpExBsZfh3rvtSTL6UrepNyGqs9HNszowFhVDI-gcKR7ovOLLmmY0Sv5GPaQxg21aAMxD"/>
+</div>
+</header>
+<main class="max-w-2xl mx-auto px-container-padding-mobile py-stack-md pb-32">
+<!-- Profile Section -->
+<section class="mb-stack-lg">
+<div class="glass-card rounded-xl p-6 flex items-center gap-6 group transition-all duration-500 hover:bg-white/[0.06]">
+<div class="relative">
+<div class="w-20 h-20 rounded-2xl border-2 border-primary-fixed-dim/20 overflow-hidden glow-accent">
+<img alt="Alex Rivian" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="A detailed headshot of Alex Rivian, a sleek modern professional in a minimalist studio setting. Lighting is focused and dramatic, featuring cool cyan tones reflecting off a glass surface. The atmosphere conveys expertise in automotive technology and high-end software development." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhEUf6k_oJ7K9F-KZaeXQV6RJMGRJBqXiPK_QvuXlz1ZEQJ7Q7_4bxzNUMIxDMPExapJifxFKdfq5-ciaxdksIyVym1fUEIQmk_cB25n_Hh9FRuTi62GMxHY-GNGRuDlIIlxCmEQaaczVbV4_cHiF4IBILun0BUOIwB4ooHaT48pMbWmyDhYyqusd8nB-369bqaF3vf8UbwDpkz80ftbzLeIh5G_SxQrYoW7ElSwGuSZcm0HdHu-W4yJUMVWiXlajVStomc5s4phb3"/>
+</div>
+<div class="absolute -bottom-2 -right-2 bg-primary-container text-on-primary-container p-1 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-lg">PRO</div>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-primary-fixed-dim">Alex Rivian</h2>
+<p class="font-body-md text-on-surface-variant/80">alex@motorecho.ai</p>
+<div class="flex gap-2 mt-3">
+<span class="px-2 py-0.5 rounded bg-on-primary-fixed-variant/30 text-[10px] text-primary-fixed font-bold tracking-wider">PREMIUM MEMBER</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-[10px] text-on-surface-variant font-bold tracking-wider">ID: 8829-ME</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Settings Groups -->
+<div class="flex flex-col gap-stack-md">
+<!-- Group: Account Settings -->
+<div class="space-y-4">
+<h3 class="font-label-lg text-on-surface-variant/50 uppercase tracking-[0.2em] px-2">Account Settings</h3>
+<div class="glass-card rounded-xl overflow-hidden divide-y divide-white/5">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim/70 group-hover:text-primary-fixed-dim transition-colors">person</span>
+<span class="font-body-lg text-on-surface">Personal Information</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/40 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim/70 group-hover:text-primary-fixed-dim transition-colors">lock</span>
+<span class="font-body-lg text-on-surface">Security &amp; Password</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/40 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim/70 group-hover:text-primary-fixed-dim transition-colors">payments</span>
+<span class="font-body-lg text-on-surface">Billing &amp; Subscription</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/40 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Group: Notification Preferences -->
+<div class="space-y-4">
+<h3 class="font-label-lg text-on-surface-variant/50 uppercase tracking-[0.2em] px-2">Notification Preferences</h3>
+<div class="glass-card rounded-xl overflow-hidden divide-y divide-white/5">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim/70 group-hover:text-primary-fixed-dim transition-colors">notifications_active</span>
+<span class="font-body-lg text-on-surface">Push Alerts</span>
+</div>
+<div class="w-10 h-5 bg-primary-container/20 rounded-full relative border border-primary-fixed-dim/30">
+<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-primary-fixed-dim rounded-full shadow-[0_0_10px_rgba(0,219,231,0.6)]"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim/70 group-hover:text-primary-fixed-dim transition-colors">mail</span>
+<span class="font-body-lg text-on-surface">Email Summaries</span>
+</div>
+<div class="w-10 h-5 bg-white/5 rounded-full relative border border-white/10">
+<div class="absolute left-0.5 top-0.5 w-4 h-4 bg-on-surface-variant/40 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Group: Connected Devices -->
+<div class="space-y-4">
+<h3 class="font-label-lg text-on-surface-variant/50 uppercase tracking-[0.2em] px-2">Connected Devices (OBD-II)</h3>
+<div class="glass-card rounded-xl overflow-hidden">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim/70 group-hover:text-primary-fixed-dim transition-colors">settings_input_component</span>
+<div>
+<p class="font-body-lg text-on-surface">OBD-II Scanner Pro</p>
+<p class="text-[12px] text-primary-fixed-dim animate-pulse">Connected • Porsche 911 (992)</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/40 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Group: Legal -->
+<div class="space-y-4">
+<h3 class="font-label-lg text-on-surface-variant/50 uppercase tracking-[0.2em] px-2">Legal &amp; Privacy</h3>
+<div class="glass-card rounded-xl overflow-hidden divide-y divide-white/5">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant/60 group-hover:text-primary-fixed-dim transition-colors">description</span>
+<span class="font-body-lg text-on-surface">Terms of Service</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/40 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant/60 group-hover:text-primary-fixed-dim transition-colors">shield</span>
+<span class="font-body-lg text-on-surface">Privacy Policy</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/40 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="mt-stack-md space-y-8 flex flex-col items-center">
+<button class="w-full py-4 rounded-xl border border-error/20 text-error hover:bg-error/5 transition-colors font-label-lg active:scale-95 duration-150">
+                    Log Out
+                </button>
+<div class="text-center space-y-2">
+<p class="font-label-md text-on-surface-variant/40 tracking-widest uppercase">Version 2.4.0 (Stable Build)</p>
+<p class="text-[10px] text-on-surface-variant/20 italic">Crafted by MotorEcho Engineering in California</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Anchor -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface-container-lowest/80 backdrop-blur-2xl dark:bg-surface-container-lowest/80 border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary transition-all duration-300" href="#">
+<span class="material-symbols-outlined">directions_car</span>
+<span class="font-label-md text-label-md">Garage</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary transition-all duration-300" href="#">
+<span class="material-symbols-outlined">mic</span>
+<span class="font-label-md text-label-md">Scan</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary transition-all duration-300" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Analysis</span>
+</a>
+<!-- ACTIVE TAB: Profile/Settings maps to history/settings context -->
+<a class="flex flex-col items-center justify-center text-primary-fixed shadow-[0_-15px_30px_-10px_rgba(0,242,255,0.3)] bg-primary-container/10 rounded-full p-2 transform scale-110 duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+<!-- Background Decorative Element -->
+<div class="fixed top-0 right-0 -z-10 w-full h-full overflow-hidden pointer-events-none opacity-20">
+<div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-container/20 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary-container/10 rounded-full blur-[100px]"></div>
+</div>
+<script>
+        // Simple micro-interaction for list items
+        document.querySelectorAll('.glass-card div').forEach(item => {
+            item.addEventListener('touchstart', () => {
+                item.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+            });
+            item.addEventListener('touchend', () => {
+                item.style.backgroundColor = '';
+            });
+        });
+    </script>
+</body></html>

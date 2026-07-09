@@ -1,0 +1,503 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "skip": "Skip",
+    "close": "Close",
+    "confirm": "Confirm",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information",
+    "optional": "optional",
+    "yes": "Yes",
+    "no": "No",
+    "iDontKnow": "I don't know",
+    "saving": "Saving..."
+  },
+  "splash": {
+    "tagline": "AI-powered engine sound diagnostics."
+  },
+  "tabs": {
+    "garage": "Garage",
+    "scan": "Scan",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "plans": {
+    "title": "Choose the plan that fits your needs.",
+    "subtitle": "Start for free and upgrade anytime.",
+    "mostPopular": "Most Popular",
+    "free": "Free",
+    "perMonth": "/ month",
+    "perYear": "/ year",
+    "yearlyOption": "or €29.99 / year — save 17%",
+    "changePlanAnytime": "You can change your plan at any time.",
+    "alreadyAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "buttons": {
+      "free": "Continue for Free",
+      "premium": "Choose Premium",
+      "garage": "I'm a Professional"
+    },
+    "starter": {
+      "name": "Starter",
+      "features": [
+        "1 vehicle",
+        "3 analyses per month",
+        "Basic AI diagnosis",
+        "History limited to 30 days"
+      ]
+    },
+    "premium": {
+      "name": "Premium",
+      "features": [
+        "2 vehicles",
+        "Unlimited analyses",
+        "Advanced AI diagnostics",
+        "Complete history",
+        "PDF reports",
+        "Maintenance alerts",
+        "Vehicle health score"
+      ]
+    },
+    "garagePro": {
+      "name": "Garage Pro",
+      "features": [
+        "Unlimited vehicles",
+        "Unlimited analyses",
+        "Professional dashboard",
+        "Fleet management",
+        "Professional reports",
+        "Priority support"
+      ]
+    }
+  },
+  "auth": {
+    "signUp": {
+      "title": "Create account",
+      "subtitle": "Start your engine diagnostics journey",
+      "firstName": "First Name",
+      "firstNamePlaceholder": "John",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Doe",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "confirmPassword": "Confirm Password",
+      "createAccount": "Create Account",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "passwordsNoMatch": "Passwords do not match",
+      "acceptRequired": "Please accept the Terms and Privacy Policy to continue",
+      "acceptTerms": "I accept the Terms and Conditions",
+      "acceptPrivacy": "I accept the Privacy Policy",
+      "allowAiTraining": "I agree to anonymously share my engine recordings to improve MotorEcho AI",
+      "premiumSelected": "Premium selected",
+      "garageProSelected": "Garage Pro selected",
+      "nameRequired": "First name and last name are required"
+    },
+    "signIn": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to continue diagnostics",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "signInButton": "Sign In",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    },
+    "forgotPassword": {
+      "title": "Reset password",
+      "subtitle": "Enter your email to receive a reset link",
+      "emailPlaceholder": "you@example.com",
+      "sendResetLink": "Send Reset Link",
+      "checkEmail": "Check your email",
+      "emailSent": "We sent you a password reset link. Check your inbox.",
+      "backToSignIn": "Back to Sign In"
+    },
+    "logout": "Log out"
+  },
+  "payment": {
+    "title": "Complete your subscription",
+    "subtitle": "Secure payment powered by Stripe",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save17": "Save 17%",
+    "total": "Total",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "paymentInfo": "Payment Information",
+    "cardholderName": "Cardholder Name",
+    "cardholderNamePlaceholder": "John Doe",
+    "cardNumber": "Card Number",
+    "cardNumberPlaceholder": "1234 5678 9012 3456",
+    "expiry": "Expiry",
+    "expiryPlaceholder": "MM/YY",
+    "cvv": "CVV",
+    "cvvPlaceholder": "•••",
+    "securityNote": "Your payment is secured with 256-bit SSL encryption. No payment data is stored on our servers.",
+    "demoNotice": "Demo mode: Any card details will activate your subscription.",
+    "processing": "Processing...",
+    "subscribe": "Subscribe — €{{price}}{{period}}",
+    "skipForNow": "Skip for now — subscribe later",
+    "success": {
+      "title": "Payment successful!",
+      "subtitle": "Welcome to {{plan}}. Setting up your account..."
+    }
+  },
+  "vehicleSetup": {
+    "title": "Add Your Vehicle",
+    "subtitle": "Tell us about your car so AI can provide accurate diagnostics",
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "brandSearch": "Search brand or country...",
+    "brandNoResults": "No brands found",
+    "model": "Model",
+    "modelPlaceholder": "e.g. 3 Series, Model 3, A4",
+    "year": "Year",
+    "yearPlaceholder": "e.g. 2022",
+    "fuelType": "Fuel Type",
+    "engineType": "Engine Type",
+    "enginePlaceholder": "e.g. 2.0L TFSI, 3.0L V6",
+    "licensePlate": "License Plate",
+    "licensePlatePlaceholder": "e.g. AB-123-CD",
+    "fuelTypes": {
+      "gasoline": "Gasoline",
+      "diesel": "Diesel",
+      "electric": "Electric",
+      "hybrid": "Hybrid",
+      "pluginHybrid": "Plugin Hybrid",
+      "lpg": "LPG"
+    },
+    "save": "Save Vehicle",
+    "saving": "Saving...",
+    "errorSaving": "Failed to save vehicle. Please try again.",
+    "notAuthenticated": "No authenticated session — please log in again."
+  },
+  "dashboard": {
+    "hello": "Hello, {{name}}",
+    "healthScore": "Health Score",
+    "totalAnalyses": "Total Analyses",
+    "lastStatus": "Last Status",
+    "analyzeEngine": "Analyze Engine",
+    "viewHistory": "View History",
+    "vehicle": "Vehicle",
+    "manage": "Manage",
+    "recentAnalyses": "Recent Analyses",
+    "seeAll": "See All",
+    "noAnalyses": "No analyses yet",
+    "noAnalysesSubtitle": "Record your engine to get your first AI diagnosis",
+    "addFirstVehicle": "Add your first vehicle",
+    "analysesThisMonth": "Analyses this month",
+    "vehicles": "Vehicles",
+    "upgrade": "Upgrade",
+    "upgradeBanner": {
+      "title": "Upgrade to Premium",
+      "subtitle": "Unlimited analyses, advanced diagnostics, PDF export"
+    }
+  },
+  "analyze": {
+    "title": "Scan",
+    "tapToRecord": "Tap to Start Recording",
+    "duration": "10 second analysis",
+    "preparation": "Preparation",
+    "step1Title": "Open the hood",
+    "step1Desc": "Access the engine compartment for clear audio capture",
+    "step2Title": "Stay close to the engine",
+    "step2Desc": "Hold the microphone 10-15 cm from the engine block",
+    "step3Title": "Avoid speaking",
+    "step3Desc": "Stay silent during recording to prevent interference",
+    "step4Title": "Record for 10 seconds",
+    "step4Desc": "Let the engine idle naturally for optimal analysis",
+    "vehicle": "Vehicle"
+  },
+  "recording": {
+    "title": "Record Engine Sound",
+    "subtitle": "Tap the button to start recording",
+    "listening": "Listening to engine frequencies...",
+    "timerLimit": "/ 10.0s",
+    "rec": "REC",
+    "tapToStart": "Tap to start",
+    "tapToStop": "Tap to stop",
+    "permissionRequired": "Microphone permission is required to record engine sound.",
+    "failedToStart": "Failed to start recording. Please try again.",
+    "recordingFailed": "Recording failed. Please try again.",
+    "processingFailed": "Failed to process recording."
+  },
+  "processing": {
+    "title": "AI Analysis in Progress",
+    "step1": "Audio captured",
+    "step2": "Analyzing frequencies",
+    "step3": "Generating report",
+    "analysisInterrupted": "Analysis was interrupted. Please try again with a clear engine recording.",
+    "messages": {
+      "0": "Listening to engine frequencies...",
+      "1": "Analyzing acoustic signatures...",
+      "2": "Detecting anomalies...",
+      "3": "Generating diagnostic report..."
+    }
+  },
+  "result": {
+    "diagnosticReport": "Diagnostic Report",
+    "generatedBy": "Generated by MotorEcho AI",
+    "confidence": "Confidence",
+    "issueCategory": "Issue Category",
+    "severity": "Severity",
+    "confidenceScore": "Confidence Score",
+    "recommendation": "Recommendation",
+    "possibleIssues": "Possible Issues",
+    "newAnalysis": "New Analysis",
+    "noIssueDetected": "No specific issue detected",
+    "feedbackButton": "Was the diagnosis correct?",
+    "betaBanner": "Beta — MotorEcho AI is improving thanks to community contributions",
+    "healthy": {
+      "title": "Healthy",
+      "description": "Engine sounds healthy and within normal acoustic parameters."
+    },
+    "monitor": {
+      "title": "Monitor",
+      "description": "Some irregular sounds detected. Monitor closely over the next week."
+    },
+    "critical": {
+      "title": "Critical",
+      "description": "Significant anomaly detected. Immediate attention recommended."
+    },
+    "issues": {
+      "turbo": "Turbo",
+      "injector": "Injector",
+      "timingChain": "Timing Chain",
+      "engineKnock": "Engine Knock",
+      "idle": "Idle"
+    }
+  },
+  "history": {
+    "title": "History",
+    "analysisCount_one": "{{count}} analysis",
+    "analysisCount_other": "{{count}} analyses",
+    "at": "at",
+    "noHistory": "No history",
+    "noHistorySubtitle": "Your analyses will appear here",
+    "filter": {
+      "all": "All",
+      "healthy": "Healthy",
+      "monitor": "Monitor",
+      "critical": "Critical"
+    },
+    "upgradeForComplete": "Upgrade to Premium for complete history"
+  },
+  "garage": {
+    "title": "Garage",
+    "yourVehicles": "Your Vehicles",
+    "add": "Add",
+    "noVehicles": "No vehicles yet",
+    "noVehiclesSubtitle": "Add your first vehicle to start tracking engine health.",
+    "addVehicle": "Add Vehicle",
+    "scans": "Scans",
+    "health": "Health",
+    "avgInterval": "Avg. Interval",
+    "currentPlan": "Current Plan",
+    "analysesThisMonth": "Analyses this month",
+    "upgrade": "Upgrade",
+    "community": "Community",
+    "communityTagline": "Together, we are building the world's first AI engine sound database.",
+    "soundsCollected": "Sounds Collected",
+    "contributors": "Contributors",
+    "confirmed": "Confirmed"
+  },
+  "premium": {
+    "title": "MotorEcho Premium",
+    "subtitle": "Unlock advanced diagnostics and features",
+    "choosePlan": "Choose Your Plan",
+    "billing": {
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "save": "Save 17%"
+    },
+    "upgradeNow": "Upgrade Now",
+    "currentPlan": "Current Plan",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "yearlyPrice": "or 29.99€/year (save 17%)",
+    "bestValue": "Best Value",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "period": "Forever",
+        "features": {
+          "vehicle": "1 Vehicle",
+          "analyses": "3 analyses / month",
+          "diagnostic": "Basic diagnostic",
+          "history": "30-day history",
+          "advancedAI": "Advanced AI",
+          "pdfExport": "PDF export",
+          "alerts": "Maintenance alerts",
+          "fleetManagement": "Fleet management"
+        }
+      },
+      "premium": {
+        "name": "Premium",
+        "period": "per month",
+        "features": {
+          "vehicles": "2 Vehicles",
+          "analyses": "Unlimited analyses",
+          "diagnostic": "Advanced AI diagnostics",
+          "history": "Complete history",
+          "pdfExport": "PDF export",
+          "alerts": "Maintenance alerts",
+          "monitoring": "Vehicle health monitoring",
+          "fleet": false
+        }
+      },
+      "garage": {
+        "name": "Garage",
+        "period": "per month",
+        "features": {
+          "vehicles": "Unlimited vehicles",
+          "analyses": "Unlimited analyses",
+          "dashboard": "Professional dashboard",
+          "fleetManagement": "Fleet management",
+          "history": "Complete history",
+          "reports": "Advanced reports",
+          "support": "Priority support",
+          "business": "Business reporting"
+        }
+      }
+    },
+    "comparison": {
+      "title": "Plan Comparison",
+      "feature": "Feature",
+      "vehicles": "Vehicles",
+      "analysesMonth": "Analyses/month",
+      "history": "History",
+      "pdfExport": "PDF Export",
+      "maintenanceAlerts": "Maintenance Alerts",
+      "fleetManagement": "Fleet Management",
+      "prioritySupport": "Priority Support",
+      "advancedReports": "Advanced Reports"
+    },
+    "features": {
+      "title": "Premium Features",
+      "unlimitedAnalyses": {
+        "title": "Unlimited Analyses",
+        "description": "Run as many AI diagnostics as you want with no monthly cap."
+      },
+      "advancedReports": {
+        "title": "Advanced AI Reports",
+        "description": "Detailed frequency breakdowns, spectral analysis, and comparison charts."
+      },
+      "completeHistory": {
+        "title": "Complete History",
+        "description": "Access your full analysis history with advanced search and filtering."
+      },
+      "vehicleTracking": {
+        "title": "Vehicle Tracking",
+        "description": "Track health trends across multiple vehicles over time."
+      },
+      "priorityAnalysis": {
+        "title": "Priority Analysis",
+        "description": "Your analysis requests are processed first in our AI queue."
+      },
+      "pdfExport": {
+        "title": "PDF Export",
+        "description": "Export professional diagnostic reports to share with your mechanic."
+      }
+    },
+    "upgradeModal": {
+      "title": "Upgrade to {{plan}}",
+      "unlock": "What you'll unlock:",
+      "upgradeButton": "Upgrade to {{plan}}",
+      "maybeLater": "Maybe later"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "title": "Language",
+      "description": "Choose your preferred language"
+    },
+    "account": {
+      "title": "Account",
+      "email": "Email",
+      "name": "Name",
+      "security": "Security"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "manage": "Manage Subscription"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "pushAlerts": "Push Alerts",
+      "emailSummaries": "Email Summaries"
+    },
+    "privacy": {
+      "title": "Privacy"
+    },
+    "help": {
+      "title": "Help & Support"
+    },
+    "about": {
+      "title": "About",
+      "version": "Version",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy"
+    },
+    "logout": "Log Out"
+  },
+  "limits": {
+    "vehicleLimitReached": "Vehicle limit reached",
+    "analysisLimitReached": "Monthly analysis limit reached",
+    "upgradeToPremium": "Upgrade to Premium to manage up to 2 vehicles.",
+    "upgradeToGarage": "Upgrade to Garage to manage unlimited vehicles.",
+    "monthlyLimitReached": "Your monthly limit has been reached.",
+    "checkingLimits": "Checking limits..."
+  },
+  "onboarding": {
+    "slide1": {
+      "title": "Listen to your engine",
+      "subtitle": "Record your engine sound and let AI analyze it for anomalies before they become costly failures."
+    },
+    "slide2": {
+      "title": "Instant AI analysis",
+      "subtitle": "Our neural engine processes frequencies in real-time to detect turbo, injector, timing chain, and knock issues."
+    },
+    "slide3": {
+      "title": "Prevent costly repairs",
+      "subtitle": "Get professional-grade diagnostics at your fingertips. Monitor your engine health over time."
+    },
+    "getStarted": "Get Started"
+  },
+  "feedback": {
+    "wasCorrect": "Was the diagnosis correct?",
+    "helpUsImprove": "Help us improve by confirming the result",
+    "actualDiagnosis": "What was the actual diagnosis?",
+    "selectIssue": "Select the issue found by your mechanic",
+    "helpImproveAI": "Help MotorEcho improve its AI",
+    "consentQuestion": "Do you authorize anonymous use of your engine sound recording for AI training?",
+    "consentNote": "Your data is anonymized and only used to train our engine sound model. No personal information is shared.",
+    "yesAuthorize": "Yes, I authorize",
+    "keepPrivate": "No, keep my recording private",
+    "thankYou": "Thank you!",
+    "feedbackHelps": "Your feedback helps us build a better AI for everyone.",
+    "issues": {
+      "turbo_issue": "Turbo issue",
+      "injector_noise": "Injector issue",
+      "timing_chain_noise": "Timing chain",
+      "engine_knocking": "Engine knocking",
+      "idle_instability": "Idle instability",
+      "no_issue": "No issue",
+      "other": "Other"
+    }
+  }
+}
