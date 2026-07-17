@@ -1,6 +1,14 @@
 import { analyseRecording } from './analyseRecording';
 import { computeQualityScore, resolveQualityLevel } from './qualityScore';
 import { clampScore } from './guards';
+import { recordingQualityToDbRow, dbRowToRecordingQuality } from './persist';
+import {
+  embedRecordingQuality,
+  extractRecordingQuality,
+  stripRecordingQualityMarker,
+  RECORDING_QUALITY_MARKER,
+} from './recommendation';
+import { buildTechnicalReport, clearBetaLog, logBetaEvent } from '../beta-logger';
 
 function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(message);
@@ -45,6 +53,30 @@ export function runAudioQualitySelfCheck(): void {
 
   assert(clampScore(Number.NaN) === 0, 'NaN should clamp to 0');
   assert(clampScore(Infinity) === 0, 'Infinity should clamp to 0');
+
+  const sampleQuality = analyseRecording({ samples: [], durationMs: 5000, fileSizeBytes: 12000 });
+  const row = recordingQualityToDbRow(sampleQuality);
+  assert(row.recording_quality_score != null, 'quality score should serialize');
+  const roundTrip = dbRowToRecordingQuality(row);
+  assert(roundTrip !== null, 'db row should deserialize');
+  assert(roundTrip!.qualityScore === sampleQuality.qualityScore, 'quality score round-trip mismatch');
+
+  const legacyText = embedRecordingQuality('Check belts', sampleQuality);
+  assert(legacyText.includes(RECORDING_QUALITY_MARKER), 'legacy marker should be present');
+  const legacyQuality = extractRecordingQuality(legacyText);
+  assert(legacyQuality?.qualityScore === sampleQuality.qualityScore, 'legacy extract failed');
+  assert(
+    stripRecordingQualityMarker(legacyText) === 'Check belts',
+    'strip should remove embedded quality'
+  );
+
+  clearBetaLog();
+  logBetaEvent('analysis', 'Test event', 'TEST');
+  const report = buildTechnicalReport({ appVersion: '1.0.0', platform: 'test' });
+  assert(report.includes('MotorEcho Beta Technical Report'), 'report header missing');
+  assert(report.includes('analysis'), 'report should include category');
+  assert(!report.includes('Bearer '), 'report must not contain tokens');
+  assert(!report.includes('@'), 'report must not contain emails in test context');
 }
 
 if (typeof process !== 'undefined' && process.argv[1]?.includes('self-check')) {

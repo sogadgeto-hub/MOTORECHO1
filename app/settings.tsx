@@ -14,6 +14,7 @@ import {
   Globe,
   ArrowLeft,
   Brain,
+  Bug,
 } from 'lucide-react-native';
 import { AppBackground } from '@/components/AppBackground';
 import { GlassCard } from '@/components/GlassCard';
@@ -22,6 +23,7 @@ import { useAuth } from '@/lib/auth';
 import { formatPlanLabel } from '@/lib/plan-access';
 import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useI18n } from '@/lib/i18n';
+import { isBetaDiagnosticsEnabled } from '@/lib/beta-diagnostics';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -164,6 +166,19 @@ export default function SettingsScreen() {
         <FadeInView delay={400}>
           <SectionTitle>{t.settings.about.title}</SectionTitle>
           <GlassCard style={styles.groupCard}>
+            {isBetaDiagnosticsEnabled() ? (
+              <TouchableOpacity
+                style={[styles.groupRow, styles.groupRowBorder]}
+                onPress={() => router.push('/beta-diagnostics' as never)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.groupRowLeft}>
+                  <Bug size={20} color={MD3Colors.primaryFixedDim} strokeWidth={1.5} />
+                  <Text style={styles.groupRowLabel}>Beta diagnostics</Text>
+                </View>
+                <ChevronRight size={18} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity style={[styles.groupRow, styles.groupRowBorder]} activeOpacity={0.7}>
               <View style={styles.groupRowLeft}>
                 <FileText size={20} color={MD3Colors.onSurfaceVariant} strokeWidth={1.5} />

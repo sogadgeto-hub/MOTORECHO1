@@ -21,6 +21,7 @@ import { SubscriptionEngineProvider } from '@/lib/subscription-engine/context';
 import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 import { Animation } from '@/lib/theme';
 import { I18nProvider } from '@/lib/i18n';
+import { isBetaDiagnosticsEnabled } from '@/lib/beta-diagnostics';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -67,6 +68,9 @@ function RootNavigator() {
           <Stack.Screen name="add-vehicle" options={{ headerShown: false }} />
           <Stack.Screen name="vehicle-health" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          {isBetaDiagnosticsEnabled() ? (
+            <Stack.Screen name="beta-diagnostics" options={{ headerShown: false }} />
+          ) : null}
           <Stack.Screen name="+not-found" />
         </Stack>
       )}
