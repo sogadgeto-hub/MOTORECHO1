@@ -20,7 +20,9 @@ import {
 
 } from './audio';
 
-import { embedRecordingQuality } from './audio-quality';
+import { recordingQualityToDbRow, dbRowToRecordingQuality } from './audio-quality/persist';
+import { extractRecordingQuality } from './audio-quality/recommendation';
+import type { RecordingQuality } from './audio-quality';
 
 
 
@@ -92,8 +94,32 @@ export type DiagnosticRecord = {
 
   audio_format: string | null;
 
+  recording_quality_score: number | null;
+
+  recording_quality_level: string | null;
+
+  recording_duration_ms: number | null;
+
+  average_volume: number | null;
+
+  peak_volume: number | null;
+
+  noise_level: number | null;
+
+  clipping_detected: boolean | null;
+
+  silence_detected: boolean | null;
+
+  client_request_id: string | null;
+
   created_at: string;
 
+};
+
+
+
+export type SaveDiagnosticOptions = {
+  clientRequestId?: string | null;
 };
 
 
@@ -239,21 +265,44 @@ export const MOCK_RESULTS: DiagnosticResult[] = [
 
 
 function mapDiagnosticRow(record: Record<string, unknown>): DiagnosticRecord {
-
   const audioMeta = parseAudioStorageMetadata(record.audio_url as string | null);
-
-  return {
-
+  const mapped: DiagnosticRecord = {
     ...(record as DiagnosticRecord),
-
     result: (record.analysis_result as string) ?? (record.result as string),
-
-    audio_duration_ms: audioMeta.durationMs,
-
+    audio_duration_ms:
+      (record.recording_duration_ms as number | null) ?? audioMeta.durationMs,
     audio_format: audioMeta.format,
-
+    recording_quality_score: (record.recording_quality_score as number | null) ?? null,
+    recording_quality_level: (record.recording_quality_level as string | null) ?? null,
+    recording_duration_ms: (record.recording_duration_ms as number | null) ?? null,
+    average_volume: record.average_volume != null ? Number(record.average_volume) : null,
+    peak_volume: record.peak_volume != null ? Number(record.peak_volume) : null,
+    noise_level: record.noise_level != null ? Number(record.noise_level) : null,
+    clipping_detected: (record.clipping_detected as boolean | null) ?? null,
+    silence_detected: (record.silence_detected as boolean | null) ?? null,
+    client_request_id: (record.client_request_id as string | null) ?? null,
   };
 
+  return mapped;
+}
+
+
+
+export function getRecordingQualityFromRecord(record: DiagnosticRecord): RecordingQuality | null {
+  const fromDb = dbRowToRecordingQuality({
+    recording_quality_score: record.recording_quality_score,
+    recording_quality_level: record.recording_quality_level,
+    recording_duration_ms: record.recording_duration_ms,
+    average_volume: record.average_volume,
+    peak_volume: record.peak_volume,
+    noise_level: record.noise_level,
+    clipping_detected: record.clipping_detected,
+    silence_detected: record.silence_detected,
+  });
+
+  if (fromDb) return fromDb;
+
+  return extractRecordingQuality(record.recommendation);
 }
 
 
@@ -334,7 +383,9 @@ export async function saveDiagnostic(
 
   audioMetadata?: AudioDiagnosticMetadata | null,
 
-  vehicleInfo?: { brand?: string; model?: string; year?: number; fuel_type?: string } | null
+  vehicleInfo?: { brand?: string; model?: string; year?: number; fuel_type?: string } | null,
+
+  options?: SaveDiagnosticOptions
 
 ): Promise<DiagnosticRecord> {
 
@@ -354,71 +405,70 @@ export async function saveDiagnostic(
 
   const analysisStatus = isSimulated ? 'beta_simulated' : 'completed';
 
-  const recommendation = audioMetadata?.recordingQuality
-    ? embedRecordingQuality(result.recommendation, audioMetadata.recordingQuality)
-    : result.recommendation;
+  const qualityRow = recordingQualityToDbRow(audioMetadata?.recordingQuality);
+  const clientRequestId = options?.clientRequestId ?? null;
 
+  const insertPayload = {
+    user_id: userId,
+    analysis_result: result.result,
+    issue_type: result.type,
+    confidence: result.confidence,
+    severity: result.severity,
+    recommendation: result.recommendation,
+    vehicle_id: vehicleId ?? null,
+    audio_url: audioMetadata?.storagePath ?? null,
+    vehicle_brand: vehicleInfo?.brand ?? null,
+    vehicle_model: vehicleInfo?.model ?? null,
+    vehicle_year: vehicleInfo?.year ?? null,
+    fuel_type: vehicleInfo?.fuel_type ?? null,
+    analysis_status: analysisStatus,
+    client_request_id: clientRequestId,
+    ...qualityRow,
+  };
 
+  const { data, error } = await supabase.from('diagnostics').insert(insertPayload).select().single();
 
-  const { data, error } = await supabase
+  if (error?.code === '23505' && clientRequestId) {
+    const { data: existing, error: fetchError } = await supabase
+      .from('diagnostics')
+      .select('*')
+      .eq('client_request_id', clientRequestId)
+      .single();
 
-    .from('diagnostics')
-
-    .insert({
-
-      user_id: userId,
-
-      analysis_result: result.result,
-
-      issue_type: result.type,
-
-      confidence: result.confidence,
-
-      severity: result.severity,
-
-      recommendation,
-
-      vehicle_id: vehicleId ?? null,
-
-      audio_url: audioMetadata?.storagePath ?? null,
-
-      vehicle_brand: vehicleInfo?.brand ?? null,
-
-      vehicle_model: vehicleInfo?.model ?? null,
-
-      vehicle_year: vehicleInfo?.year ?? null,
-
-      fuel_type: vehicleInfo?.fuel_type ?? null,
-
-      analysis_status: analysisStatus,
-
-    })
-
-    .select()
-
-    .single();
-
-
+    if (!fetchError && existing) {
+      return finalizeDiagnosticRecord(existing as Record<string, unknown>, audioMetadata);
+    }
+  }
 
   if (error) throw error;
 
-
-
-  const record = mapDiagnosticRow(data as Record<string, unknown>);
-
-  if (audioMetadata) {
-
-    record.audio_duration_ms = audioMetadata.durationMs;
-
-    record.audio_format = audioMetadata.format;
-
-  }
-
-  return record;
-
+  return finalizeDiagnosticRecord(data as Record<string, unknown>, audioMetadata);
 }
 
 
+
+function finalizeDiagnosticRecord(
+  row: Record<string, unknown>,
+  audioMetadata?: AudioDiagnosticMetadata | null
+): DiagnosticRecord {
+  const record = mapDiagnosticRow(row);
+
+  if (audioMetadata) {
+    record.audio_duration_ms = audioMetadata.durationMs;
+    record.audio_format = audioMetadata.format;
+  }
+
+  return record;
+}
+
+
+
+export type ProcessAudioDiagnosticResult = {
+  record: DiagnosticRecord | null;
+  analysis: AnalysisOutcome;
+  saveFailed: boolean;
+  saveErrorMessage?: string;
+};
 
 export async function processAudioDiagnostic(
 
@@ -432,9 +482,11 @@ export async function processAudioDiagnostic(
 
   vehicleInfo?: { brand?: string; model?: string; year?: number; fuel_type?: string } | null,
 
-  recordingQuality?: import('./audio-quality').RecordingQuality | null
+  recordingQuality?: import('./audio-quality').RecordingQuality | null,
 
-): Promise<{ record: DiagnosticRecord; analysis: AnalysisOutcome }> {
+  clientRequestId?: string | null
+
+): Promise<ProcessAudioDiagnosticResult> {
 
   const validated: ValidatedAudioFile = await validateAudioFile(audioUri, durationMs);
 
@@ -442,36 +494,33 @@ export async function processAudioDiagnostic(
 
   const analysis = await analyzeAudio(vehicleId ?? null);
 
+  try {
+    const record = await saveDiagnostic(
+      analysis,
+      vehicleId ?? null,
+      {
+        durationMs: uploaded.durationMs,
+        format: uploaded.format,
+        storagePath: uploaded.storagePath,
+        isSimulated: analysis.isSimulated,
+        recordingQuality: recordingQuality ?? null,
+      },
+      vehicleInfo,
+      { clientRequestId: clientRequestId ?? null }
+    );
 
+    return { record, analysis, saveFailed: false };
+  } catch (saveError: unknown) {
+    const saveErrorMessage =
+      saveError instanceof Error ? saveError.message : 'Diagnostic save failed';
 
-  const record = await saveDiagnostic(
-
-    analysis,
-
-    vehicleId ?? null,
-
-    {
-
-      durationMs: uploaded.durationMs,
-
-      format: uploaded.format,
-
-      storagePath: uploaded.storagePath,
-
-      isSimulated: analysis.isSimulated,
-
-      recordingQuality: recordingQuality ?? null,
-
-    },
-
-    vehicleInfo
-
-  );
-
-
-
-  return { record, analysis };
-
+    return {
+      record: null,
+      analysis,
+      saveFailed: true,
+      saveErrorMessage,
+    };
+  }
 }
 
 
