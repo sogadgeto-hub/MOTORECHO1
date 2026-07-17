@@ -1,8 +1,10 @@
 import { Platform } from 'react-native';
 import { Audio } from 'expo-av';
+import { requestMicPermission } from './recording-permissions';
 
 export type RecordingPreflightResult = {
   micGranted: boolean;
+  micBlocked: boolean;
   batteryLow: boolean;
   bluetoothConnected: boolean;
   canProceed: boolean;
@@ -11,24 +13,19 @@ export type RecordingPreflightResult = {
 const LOW_BATTERY_THRESHOLD = 0.15;
 
 export async function runRecordingPreflight(): Promise<RecordingPreflightResult> {
-  const micGranted = await ensureMicrophonePermission();
+  const micStatus = await requestMicPermission();
+  const micGranted = micStatus === 'granted';
+  const micBlocked = micStatus === 'blocked';
   const batteryLow = await isBatteryLow();
   const bluetoothConnected = micGranted ? await detectExternalAudioInput() : false;
 
   return {
     micGranted,
+    micBlocked,
     batteryLow,
     bluetoothConnected,
     canProceed: micGranted,
   };
-}
-
-async function ensureMicrophonePermission(): Promise<boolean> {
-  const current = await Audio.getPermissionsAsync();
-  if (current.granted) return true;
-
-  const requested = await Audio.requestPermissionsAsync();
-  return requested.granted;
 }
 
 async function isBatteryLow(): Promise<boolean> {
@@ -48,10 +45,6 @@ async function isBatteryLow(): Promise<boolean> {
   }
 }
 
-/**
- * Best-effort external audio input detection (Bluetooth headset, etc.).
- * Uses a short metering probe; may return false negatives on some devices.
- */
 async function detectExternalAudioInput(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
 

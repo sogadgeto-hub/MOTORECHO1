@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Animated as RNAnimated,
   ScrollView,
+  AppState,
+  type AppStateStatus,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,6 +32,7 @@ import { UpgradeModal } from '@/components/UpgradeModal';
 import { MAX_RECORDING_DURATION_MS, createPendingAudioSession, persistRecordedAudio } from '@/lib/audio';
 import { getPrimaryVehicle } from '@/lib/db';
 import { runRecordingPreflight, type RecordingPreflightResult } from '@/lib/recording-preflight';
+import { getMicPermissionStatus, openAppSettings, requestMicPermission } from '@/lib/recording-permissions';
 import {
   analyseLiveQuality,
   analyseRecording,
@@ -82,6 +85,8 @@ export default function RecordingScreen() {
   const [preflight, setPreflight] = useState<RecordingPreflightResult | null>(null);
   const [liveQuality, setLiveQuality] = useState<LiveQualityState>(DEFAULT_LIVE_QUALITY);
   const [recordingQuality, setRecordingQuality] = useState<RecordingQuality | null>(null);
+  const [micBlocked, setMicBlocked] = useState(false);
+  const [vehicleMissing, setVehicleMissing] = useState<boolean | null>(null);
   const pulseAnim = useRef(new RNAnimated.Value(1)).current;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const meteringRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -164,11 +169,53 @@ export default function RecordingScreen() {
     return undefined;
   }, [phase, pulseAnim]);
 
+  const abortRecordingDueToInterruption = useCallback(async () => {
+    cleanupTimer();
+    cleanupMetering();
+    if (recordingRef.current) {
+      try {
+        await recordingRef.current.stopAndUnloadAsync();
+      } catch {
+        // ignore
+      }
+      recordingRef.current = null;
+    }
+    meterSamplesRef.current = [];
+    busyRef.current = false;
+    setIsBusy(false);
+    setElapsed(0);
+    setPhase('idle');
+    setError(t.recording.interrupted);
+  }, [cleanupMetering, cleanupTimer, t.recording.interrupted]);
+
   useFocusEffect(
     useCallback(() => {
       refreshUsage('after_analysis');
+      getPrimaryVehicle()
+        .then((vehicle) => setVehicleMissing(!vehicle))
+        .catch(() => setVehicleMissing(true));
+
+      void getMicPermissionStatus().then((status) => {
+        setMicBlocked(status === 'blocked');
+      });
     }, [refreshUsage])
   );
+
+  useEffect(() => {
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        if (phase === 'recording' && recordingRef.current) {
+          void abortRecordingDueToInterruption();
+        }
+      }
+      if (nextState === 'active') {
+        void getMicPermissionStatus().then((status) => setMicBlocked(status === 'blocked'));
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppState);
+    return () => subscription.remove();
+  }, [phase, abortRecordingDueToInterruption]);
 
   async function handleGuideComplete() {
     setPhase('preflight');
@@ -179,10 +226,13 @@ export default function RecordingScreen() {
       setPreflight(result);
 
       if (!result.micGranted) {
-        setError(t.recording.permissionRequired);
+        setMicBlocked(result.micBlocked);
+        setError(result.micBlocked ? t.recording.permissionBlockedBody : t.recording.permissionRequired);
         setPhase('guide');
         return;
       }
+
+      setMicBlocked(false);
 
       setPhase('idle');
     } catch {
@@ -192,14 +242,21 @@ export default function RecordingScreen() {
   }
 
   async function ensureMicrophonePermission(): Promise<boolean> {
-    const current = await Audio.getPermissionsAsync();
-    if (current.granted) return true;
+    const status = await getMicPermissionStatus();
+    if (status === 'granted') {
+      setMicBlocked(false);
+      return true;
+    }
 
-    const requested = await Audio.requestPermissionsAsync();
-    if (requested.granted) return true;
+    const requested = await requestMicPermission();
+    if (requested === 'granted') {
+      setMicBlocked(false);
+      return true;
+    }
 
-    if (requested.canAskAgain === false) {
-      setError(t.recording.permissionDeniedSettings);
+    setMicBlocked(requested === 'blocked');
+    if (requested === 'blocked') {
+      setError(t.recording.permissionBlockedBody);
     } else {
       setError(t.recording.permissionRequired);
     }
@@ -428,6 +485,32 @@ export default function RecordingScreen() {
   const showRerecordRecommendation =
     recordingQuality !== null && shouldRecommendReRecord(recordingQuality);
 
+  if (vehicleMissing === true) {
+    return (
+      <AppBackground>
+        <View style={styles.blockedContainer}>
+          <Text style={styles.blockedTitle}>{t.recording.noVehicle}</Text>
+          <TouchableOpacity
+            style={styles.primaryAction}
+            onPress={() => router.push('/add-vehicle')}
+            accessibilityRole="button"
+            accessibilityLabel={t.recording.addVehicle}
+          >
+            <Text style={styles.primaryActionText}>{t.recording.addVehicle}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryActionBtn}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t.recording.goBack}
+          >
+            <Text style={styles.secondaryActionBtnText}>{t.recording.goBack}</Text>
+          </TouchableOpacity>
+        </View>
+      </AppBackground>
+    );
+  }
+
   return (
     <AppBackground>
       <TouchableOpacity
@@ -446,7 +529,23 @@ export default function RecordingScreen() {
       >
         <View style={styles.content}>
           {isGuide ? (
-            <RecordingGuide onComplete={handleGuideComplete} />
+            <>
+              <RecordingGuide onComplete={handleGuideComplete} />
+              {micBlocked && (
+                <View style={styles.permissionCard}>
+                  <Text style={styles.permissionTitle}>{t.recording.permissionBlockedTitle}</Text>
+                  <Text style={styles.permissionBody}>{t.recording.permissionBlockedBody}</Text>
+                  <TouchableOpacity
+                    style={styles.primaryAction}
+                    onPress={() => void openAppSettings()}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.recording.openSettings}
+                  >
+                    <Text style={styles.primaryActionText}>{t.recording.openSettings}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           ) : (
             <>
               <Text style={styles.title}>{t.recording.title}</Text>
@@ -807,5 +906,63 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.danger,
     textAlign: 'center',
+  },
+  blockedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  blockedTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 18,
+    color: Colors.text,
+    textAlign: 'center',
+    lineHeight: 26,
+  },
+  permissionCard: {
+    width: '100%',
+    padding: Spacing.lg,
+    borderRadius: Radii.md,
+    backgroundColor: Colors.dangerBg,
+    borderWidth: 1,
+    borderColor: Colors.danger,
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  permissionTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: Colors.text,
+  },
+  permissionBody: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  primaryAction: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 14,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  primaryActionText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: Palette.onPrimary,
+  },
+  secondaryActionBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  secondaryActionBtnText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
 });
