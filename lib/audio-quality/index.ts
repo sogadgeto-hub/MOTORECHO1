@@ -34,6 +34,8 @@ export {
   PROLONGED_SILENCE_WINDOW_MS,
   SILENCE_DB_THRESHOLD,
 } from './silence';
+export { clampScore, sanitizeDurationMs, sanitizeNormalized, sanitizeNumber } from './guards';
+export { runAudioQualitySelfCheck } from './self-check';
 export {
   computeVolumeMetrics,
   dbToNormalized,

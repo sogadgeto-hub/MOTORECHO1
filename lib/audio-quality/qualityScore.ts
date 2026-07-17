@@ -1,3 +1,4 @@
+import { clampScore } from './guards';
 import type { RecordingQualityLevel } from './types';
 
 export type QualityScoreInput = {
@@ -36,20 +37,22 @@ export function computeQualityScore(input: QualityScoreInput): number {
     score -= 8;
   }
 
-  return Math.max(0, Math.min(100, Math.round(score)));
+  return clampScore(score);
 }
 
 export function resolveQualityLevel(score: number): RecordingQualityLevel {
-  if (score >= 85) return 'excellent';
-  if (score >= 70) return 'good';
-  if (score >= 50) return 'fair';
+  const safe = clampScore(score);
+  if (safe >= 85) return 'excellent';
+  if (safe >= 70) return 'good';
+  if (safe >= 50) return 'fair';
   return 'poor';
 }
 
 export function resolveIndicatorLevel(
   score: number
 ): 'excellent' | 'good' | 'poor' {
-  if (score >= 75) return 'excellent';
-  if (score >= 50) return 'good';
+  const safe = clampScore(score);
+  if (safe >= 75) return 'excellent';
+  if (safe >= 50) return 'good';
   return 'poor';
 }

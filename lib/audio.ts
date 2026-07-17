@@ -117,7 +117,6 @@ export function buildLocalAudioDirectory(userId: string, vehicleId: string | nul
 export function createPendingAudioSession(session: PendingAudioSession): string {
   const id = `audio-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   pendingAudioSessions.set(id, session);
-  console.log('[audio] pending session stored:', id, 'uri=', session.uri, 'durationMs=', session.durationMs);
   return id;
 }
 
@@ -137,17 +136,13 @@ export async function persistRecordedAudio(
   userId: string,
   vehicleId: string | null
 ): Promise<{ uri: string; size: number }> {
-  console.log('[audio] URI after recording:', sourceUri);
-
   const sourceInfo = await FileSystem.getInfoAsync(sourceUri);
-  console.log('[audio] source FileSystem.getInfoAsync:', JSON.stringify(sourceInfo));
 
   if (!sourceInfo.exists) {
     throw new Error(AUDIO_ERROR_MESSAGES_FR.NOT_FOUND);
   }
 
   const sourceSize = 'size' in sourceInfo && typeof sourceInfo.size === 'number' ? sourceInfo.size : 0;
-  console.log('[audio] source file size:', sourceSize);
 
   if (sourceSize <= 0) {
     throw new Error(AUDIO_ERROR_MESSAGES_FR.EMPTY);
@@ -160,11 +155,8 @@ export async function persistRecordedAudio(
   await FileSystem.copyAsync({ from: sourceUri, to: destUri });
 
   const destInfo = await FileSystem.getInfoAsync(destUri);
-  console.log('[audio] URI after copy:', destUri);
-  console.log('[audio] dest FileSystem.getInfoAsync:', JSON.stringify(destInfo));
 
   const destSize = 'size' in destInfo && typeof destInfo.size === 'number' ? destInfo.size : 0;
-  console.log('[audio] file size after copy:', destSize);
 
   if (!destInfo.exists || destSize <= 0) {
     throw new Error(AUDIO_ERROR_MESSAGES_FR.COPY_FAILED);
@@ -179,8 +171,6 @@ export async function resolveAudioUriForProcessing(
 ): Promise<string> {
   if (sessionId) {
     const session = getPendingAudioSession(sessionId);
-    console.log('[processing] audioSessionId received:', sessionId);
-    console.log('[processing] pending session uri:', session?.uri ?? null);
 
     if (!session) {
       throw new Error(AUDIO_ERROR_MESSAGES_FR.SESSION_EXPIRED);
@@ -190,9 +180,7 @@ export async function resolveAudioUriForProcessing(
   }
 
   if (encodedUri) {
-    const decoded = decodeURIComponent(encodedUri);
-    console.log('[processing] legacy encoded URI received:', decoded);
-    return decoded;
+    return decodeURIComponent(encodedUri);
   }
 
   throw new Error(AUDIO_ERROR_MESSAGES_FR.NOT_FOUND);
@@ -202,17 +190,13 @@ export async function validateAudioFile(
   uri: string,
   durationMs: number
 ): Promise<ValidatedAudioFile> {
-  console.log('[audio] validateAudioFile uri:', uri, 'durationMs:', durationMs);
-
   const info = await FileSystem.getInfoAsync(uri);
-  console.log('[audio] validate FileSystem.getInfoAsync:', JSON.stringify(info));
 
   if (!info.exists) {
     throw new Error(AUDIO_ERROR_MESSAGES_FR.NOT_FOUND);
   }
 
   const size = 'size' in info && typeof info.size === 'number' ? info.size : 0;
-  console.log('[audio] validate file size:', size);
 
   if (size <= 0) {
     throw new Error(AUDIO_ERROR_MESSAGES_FR.EMPTY);

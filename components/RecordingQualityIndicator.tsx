@@ -23,7 +23,11 @@ export function RecordingQualityIndicator({ liveQuality }: RecordingQualityIndic
   return (
     <GlassCard style={styles.card}>
       <Text style={styles.title}>{copy.title}</Text>
-      <View style={styles.row}>
+      <View
+        style={styles.row}
+        accessibilityRole="text"
+        accessibilityLabel={`${copy.title}: ${indicator.label}`}
+      >
         <Text style={styles.emoji}>{indicator.emoji}</Text>
         <Text style={[styles.label, { color: indicator.color }]}>{indicator.label}</Text>
       </View>

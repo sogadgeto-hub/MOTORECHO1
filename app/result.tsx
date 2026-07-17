@@ -88,7 +88,9 @@ export default function ResultScreen() {
     [params.confidence]
   );
 
-  const confidencePercent = Math.round(safeConfidence * 100);
+  const confidencePercent = Number.isFinite(safeConfidence)
+    ? Math.round(safeConfidence * 100)
+    : 0;
 
   const issue = useMemo(
     () => resolveIssueFromAnalysis(params.result, params.type || null),

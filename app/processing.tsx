@@ -32,6 +32,7 @@ export default function ProcessingScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const completeFadeAnim = useRef(new Animated.Value(0)).current;
   const hasStarted = useRef(false);
+  const analysisRunning = useRef(false);
 
   const analysisTexts = [
     t.processing.messages['0'],
@@ -88,6 +89,9 @@ export default function ProcessingScreen() {
   }, [progressStep, progressAnim]);
 
   async function runAnalysis() {
+    if (analysisRunning.current) return;
+    analysisRunning.current = true;
+
     try {
       if (!user) {
         throw new Error(t.processing.notAuthenticated);
@@ -96,9 +100,7 @@ export default function ProcessingScreen() {
       const resolvedUri = await resolveAudioUriForProcessing(audioSessionId, audioUri ?? null);
 
       const fileInfo = await FileSystem.getInfoAsync(resolvedUri);
-      console.log('[processing] FileSystem.getInfoAsync:', JSON.stringify(fileInfo));
       const fileSize = 'size' in fileInfo && typeof fileInfo.size === 'number' ? fileInfo.size : 0;
-      console.log('[processing] file size:', fileSize);
 
       if (!fileInfo.exists || fileSize <= 0) {
         throw new Error(t.processing.missingAudio);
@@ -160,6 +162,8 @@ export default function ProcessingScreen() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t.processing.analysisInterrupted;
       setError(msg);
+    } finally {
+      analysisRunning.current = false;
     }
   }
 

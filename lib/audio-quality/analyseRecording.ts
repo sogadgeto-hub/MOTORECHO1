@@ -2,11 +2,13 @@ import { detectClipping } from './clipping';
 import { detectHighAmbientNoise, estimateNoiseLevel } from './noise';
 import { detectSilence } from './silence';
 import { computeQualityScore, resolveQualityLevel } from './qualityScore';
+import { clampScore, sanitizeDurationMs, sanitizeNormalized } from './guards';
 import type { AudioAnalysisInput, RecordingQuality } from './types';
 import { computeVolumeMetrics, estimateVolumeFromFileSize } from './volume';
 
 export function analyseRecording(input: AudioAnalysisInput): RecordingQuality {
-  const { samples, durationMs, fileSizeBytes } = input;
+  const durationMs = sanitizeDurationMs(input.durationMs);
+  const { samples, fileSizeBytes } = input;
 
   const volume =
     samples.length > 0
@@ -21,22 +23,22 @@ export function analyseRecording(input: AudioAnalysisInput): RecordingQuality {
       : Math.max(0, 0.25 - volume.averageVolume * 0.2);
 
   const qualityScore = computeQualityScore({
-    averageVolume: volume.averageVolume,
-    peakVolume: volume.peakVolume,
-    noiseLevel,
+    averageVolume: sanitizeNormalized(volume.averageVolume),
+    peakVolume: sanitizeNormalized(volume.peakVolume),
+    noiseLevel: sanitizeNormalized(noiseLevel),
     clippingDetected,
     silenceDetected,
-    silenceRatio,
+    silenceRatio: sanitizeNormalized(silenceRatio),
   });
 
   return {
     recordingDuration: durationMs,
-    averageVolume: roundMetric(volume.averageVolume),
-    peakVolume: roundMetric(volume.peakVolume),
-    noiseLevel: roundMetric(noiseLevel),
+    averageVolume: roundMetric(sanitizeNormalized(volume.averageVolume)),
+    peakVolume: roundMetric(sanitizeNormalized(volume.peakVolume)),
+    noiseLevel: roundMetric(sanitizeNormalized(noiseLevel)),
     clippingDetected,
     silenceDetected,
-    qualityScore,
+    qualityScore: clampScore(qualityScore),
     qualityLevel: resolveQualityLevel(qualityScore),
   };
 }

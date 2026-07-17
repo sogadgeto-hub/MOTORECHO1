@@ -24,6 +24,7 @@ export function RecordingSummary({ quality }: RecordingSummaryProps) {
         label={copy.scoreLabel}
       />
       <Text style={styles.level}>{levelLabel}</Text>
+      <Text style={styles.disclaimer}>{copy.disclaimer}</Text>
       <View style={styles.metaRow}>
         <MetaItem label={copy.duration} value={`${(quality.recordingDuration / 1000).toFixed(1)}s`} />
         <MetaItem
@@ -62,6 +63,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.textSecondary,
     marginTop: -Spacing.sm,
+  },
+  disclaimer: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: Spacing.sm,
   },
   metaRow: {
     flexDirection: 'row',
