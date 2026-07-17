@@ -196,7 +196,7 @@
     "healthScore": "Puntuación de salud",
     "totalAnalyses": "Análisis totales",
     "lastStatus": "Último estado",
-    "analyzeEngine": "Analizar motor",
+    "analyzeEngine": "Analizar mi motor",
     "viewHistory": "Ver historial",
     "vehicle": "Vehículo",
     "manage": "Gestionar",
@@ -214,8 +214,10 @@
     }
   },
   "analyze": {
-    "title": "Escanear",
-    "tapToRecord": "Toca para iniciar la grabación",
+    "title": "Analizar mi motor",
+    "primaryAction": "Analizar mi motor",
+    "shortHint": "Motor al ralentí · 10 s · vehículo parado",
+    "tapToRecord": "Analizar mi motor",
     "duration": "Análisis de 10 segundos",
     "preparation": "Preparación",
     "step1Title": "Abrir el capó",
@@ -247,23 +249,35 @@
     "restartRecording": "Reiniciar",
     "confirmAnalyze": "Iniciar análisis",
     "previewFailed": "No se puede reproducir la grabación. Puedes reiniciar.",
-    "notAuthenticated": "Sesión expirada. Inicia sesión de nuevo y vuelve a grabar."
+    "notAuthenticated": "Sesión expirada. Inicia sesión de nuevo y vuelve a grabar.",
+    "interrupted": "Grabación interrumpida. Puedes volver a empezar cuando estés listo.",
+    "noVehicle": "Añade un vehículo antes de iniciar un análisis.",
+    "addVehicle": "Añadir vehículo",
+    "goBack": "Volver",
+    "openSettings": "Abrir ajustes",
+    "permissionBlockedTitle": "Micrófono bloqueado",
+    "permissionBlockedBody": "MotorEcho necesita el micrófono para analizar el sonido del motor. Autoriza el acceso en los ajustes del teléfono."
   },
   "recordingGuide": {
-    "title": "Asistente de grabación",
-    "stepProgress": "Paso {{current}} / {{total}}",
-    "continue": "Continuar",
-    "startRecording": "Iniciar grabación",
+    "prepTitle": "Preparación",
+    "prepSubtitle": "Motor al ralentí, vehículo parado",
+    "continueToRecording": "Continuar al análisis",
     "preflightTitle": "Comprobaciones",
     "preflightSubtitle": "Verificando condiciones de grabación",
-    "steps": {
-      "startEngine": "Arranca el motor.",
-      "openHood": "Abre el capó si puedes hacerlo con seguridad.",
-      "openHoodHint": "Si el motor es inaccesible, puedes grabar desde el exterior.",
-      "phoneDistance": "Acerca el teléfono a unos 30 cm del motor.",
-      "noSpeaking": "Evita hablar.",
-      "quietEnvironment": "Apaga la radio y aléjate del tráfico.",
-      "readyToRecord": "Cuando estés listo, inicia la grabación."
+    "checklist": {
+      "engineIdle": "Motor en marcha al ralentí",
+      "vehicleParked": "Vehículo inmovilizado, freno de mano puesto",
+      "phoneNear": "Teléfono a unos 30 cm del motor",
+      "noSpeaking": "No hablar durante la grabación",
+      "quietPlace": "Apagar la radio y reducir el ruido ambiente"
+    },
+    "safetyTitle": "Normas de seguridad",
+    "safety": {
+      "stationary": "Análisis solo parado, nunca en marcha",
+      "parkingBrake": "Freno de mano puesto antes de empezar",
+      "notWhileDriving": "Nunca usar el teléfono bajo el capó conduciendo",
+      "avoidMovingParts": "No acercar el teléfono a correas, ventiladores o piezas en movimiento",
+      "avoidHotParts": "Evitar zonas calientes del motor"
     },
     "qualityIndicator": {
       "title": "Calidad de audio",
@@ -278,7 +292,8 @@
     },
     "summary": {
       "title": "Calidad de la grabación",
-      "scoreLabel": "Puntuación",
+      "scoreLabel": "Puntuación de audio",
+      "disclaimer": "Esta puntuación mide la calidad de la grabación, no la certeza mecánica del diagnóstico.",
       "duration": "Duración",
       "volume": "Volumen medio",
       "levels": {

@@ -196,7 +196,7 @@
     "healthScore": "Health Score",
     "totalAnalyses": "Total Analyses",
     "lastStatus": "Last Status",
-    "analyzeEngine": "Analyze Engine",
+    "analyzeEngine": "Analyze my engine",
     "viewHistory": "View History",
     "vehicle": "Vehicle",
     "manage": "Manage",
@@ -214,8 +214,10 @@
     }
   },
   "analyze": {
-    "title": "Scan",
-    "tapToRecord": "Tap to Start Recording",
+    "title": "Analyze my engine",
+    "primaryAction": "Analyze my engine",
+    "shortHint": "Engine idling · 10 seconds · vehicle stationary",
+    "tapToRecord": "Analyze my engine",
     "duration": "10 second analysis",
     "preparation": "Preparation",
     "step1Title": "Open the hood",
@@ -247,23 +249,35 @@
     "restartRecording": "Start over",
     "confirmAnalyze": "Run analysis",
     "previewFailed": "Unable to play the recording. You can start over.",
-    "notAuthenticated": "Session expired. Sign in again and re-record."
+    "notAuthenticated": "Session expired. Sign in again and re-record.",
+    "interrupted": "Recording interrupted. You can start again when ready.",
+    "noVehicle": "Add a vehicle before running an analysis.",
+    "addVehicle": "Add a vehicle",
+    "goBack": "Back",
+    "openSettings": "Open settings",
+    "permissionBlockedTitle": "Microphone blocked",
+    "permissionBlockedBody": "MotorEcho needs the microphone to analyze engine sound. Allow access in your phone settings."
   },
   "recordingGuide": {
-    "title": "Recording assistant",
-    "stepProgress": "Step {{current}} / {{total}}",
-    "continue": "Continue",
-    "startRecording": "Start recording",
+    "prepTitle": "Preparation",
+    "prepSubtitle": "Engine idling, vehicle stationary",
+    "continueToRecording": "Continue to analysis",
     "preflightTitle": "Checks",
     "preflightSubtitle": "Verifying recording conditions",
-    "steps": {
-      "startEngine": "Start your engine.",
-      "openHood": "Open the hood if it can be done safely.",
-      "openHoodHint": "If the engine is inaccessible, you can record from outside.",
-      "phoneDistance": "Hold your phone about 30 cm from the engine.",
-      "noSpeaking": "Avoid speaking.",
-      "quietEnvironment": "Turn off the radio and move away from traffic.",
-      "readyToRecord": "When you are ready, start recording."
+    "checklist": {
+      "engineIdle": "Engine running at idle",
+      "vehicleParked": "Vehicle stationary, parking brake engaged",
+      "phoneNear": "Phone about 30 cm from the engine",
+      "noSpeaking": "Do not speak during recording",
+      "quietPlace": "Turn off the radio and reduce ambient noise"
+    },
+    "safetyTitle": "Safety guidelines",
+    "safety": {
+      "stationary": "Analysis only when stationary — never while driving",
+      "parkingBrake": "Engage the parking brake before starting",
+      "notWhileDriving": "Never use the phone under the hood while driving",
+      "avoidMovingParts": "Keep the phone away from belts, fans, and moving parts",
+      "avoidHotParts": "Avoid hot engine areas"
     },
     "qualityIndicator": {
       "title": "Audio quality",
@@ -278,7 +292,8 @@
     },
     "summary": {
       "title": "Recording quality",
-      "scoreLabel": "Score",
+      "scoreLabel": "Audio score",
+      "disclaimer": "This score reflects recording quality, not mechanical diagnostic certainty.",
       "duration": "Duration",
       "volume": "Average volume",
       "levels": {
