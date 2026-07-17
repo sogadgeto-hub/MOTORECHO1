@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { X, ThumbsUp, ThumbsDown, HelpCircle, Brain, Wrench } from 'lucide-react-native';
+import { X, ThumbsUp, ThumbsDown, HelpCircle, Wrench } from 'lucide-react-native';
 import { MD3Colors, Spacing, Radii } from '@/lib/theme';
 import { updateDiagnosticFeedback } from '@/lib/analyzer';
+import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 
-type FeedbackStep = 'confirmation' | 'garage_diagnosis' | 'ai_consent' | 'done';
+type FeedbackStep = 'confirmation' | 'garage_diagnosis' | 'done';
 
 type DiagnosisFeedbackModalProps = {
   visible: boolean;
@@ -16,6 +16,7 @@ type DiagnosisFeedbackModalProps = {
 
 export function DiagnosisFeedbackModal({ visible, recordId, onClose }: DiagnosisFeedbackModalProps) {
   const { t } = useI18n();
+  const { profile } = useAuth();
   const [step, setStep] = useState<FeedbackStep>('confirmation');
   const [userConfirmed, setUserConfirmed] = useState<'yes' | 'no' | 'unknown' | null>(null);
   const [garageDiagnosis, setGarageDiagnosis] = useState<string | null>(null);
@@ -31,21 +32,7 @@ export function DiagnosisFeedbackModal({ visible, recordId, onClose }: Diagnosis
     { key: 'other', label: t.feedback.issues.other },
   ];
 
-  async function handleConfirmation(answer: 'yes' | 'no' | 'unknown') {
-    setUserConfirmed(answer);
-    if (answer === 'yes') {
-      setStep('garage_diagnosis');
-    } else {
-      setStep('ai_consent');
-    }
-  }
-
-  async function handleGarageDiagnosis(diagnosis: string) {
-    setGarageDiagnosis(diagnosis);
-    setStep('ai_consent');
-  }
-
-  async function handleAiConsent(consent: boolean) {
+  async function saveFeedback(confirmed: 'yes' | 'no' | 'unknown', garage: string | null) {
     if (!recordId) {
       onClose();
       return;
@@ -53,14 +40,30 @@ export function DiagnosisFeedbackModal({ visible, recordId, onClose }: Diagnosis
     setSaving(true);
     try {
       await updateDiagnosticFeedback(recordId, {
-        user_confirmed: userConfirmed ?? 'unknown',
-        garage_diagnosis: garageDiagnosis,
-        allow_ai_training: consent,
+        user_confirmed: confirmed,
+        garage_diagnosis: garage,
+        allow_ai_training: profile?.allow_ai_training ?? false,
       });
-    } catch {}
+    } catch {
+      // Ne pas bloquer la fermeture
+    }
     setSaving(false);
     setStep('done');
-    setTimeout(onClose, 1200);
+    setTimeout(handleClose, 1200);
+  }
+
+  function handleConfirmation(answer: 'yes' | 'no' | 'unknown') {
+    setUserConfirmed(answer);
+    if (answer === 'yes') {
+      setStep('garage_diagnosis');
+      return;
+    }
+    saveFeedback(answer, null);
+  }
+
+  function handleGarageDiagnosis(diagnosis: string) {
+    setGarageDiagnosis(diagnosis);
+    saveFeedback(userConfirmed ?? 'yes', diagnosis);
   }
 
   function handleClose() {
@@ -85,8 +88,8 @@ export function DiagnosisFeedbackModal({ visible, recordId, onClose }: Diagnosis
               <View style={styles.iconBadge}>
                 <ThumbsUp size={28} color={MD3Colors.primaryFixedDim} strokeWidth={1.5} />
               </View>
-              <Text style={styles.stepTitle}>{t.feedback.wasCorrect}</Text>
-              <Text style={styles.stepSubtitle}>{t.feedback.helpUsImprove}</Text>
+              <Text style={styles.stepTitle}>{t.feedback.exitTitle}</Text>
+              <Text style={styles.stepSubtitle}>{t.feedback.exitSubtitle}</Text>
               <View style={styles.optionsRow}>
                 <TouchableOpacity
                   style={[styles.optionBtn, styles.optionYes]}
@@ -110,7 +113,9 @@ export function DiagnosisFeedbackModal({ visible, recordId, onClose }: Diagnosis
                   activeOpacity={0.85}
                 >
                   <HelpCircle size={20} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
-                  <Text style={[styles.optionBtnText, { color: MD3Colors.onSurfaceVariant }]}>{t.common.iDontKnow}</Text>
+                  <Text style={[styles.optionBtnText, { color: MD3Colors.onSurfaceVariant }]}>
+                    {t.common.iDontKnow}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -129,55 +134,21 @@ export function DiagnosisFeedbackModal({ visible, recordId, onClose }: Diagnosis
                     key={opt.key}
                     style={[styles.garageOption, garageDiagnosis === opt.key && styles.garageOptionSelected]}
                     onPress={() => handleGarageDiagnosis(opt.key)}
+                    disabled={saving}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.garageOptionText, garageDiagnosis === opt.key && styles.garageOptionTextSelected]}>
+                    <Text
+                      style={[
+                        styles.garageOptionText,
+                        garageDiagnosis === opt.key && styles.garageOptionTextSelected,
+                      ]}
+                    >
                       {opt.label}
                     </Text>
                     {garageDiagnosis === opt.key && <View style={styles.selectedDot} />}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
-          )}
-
-          {step === 'ai_consent' && (
-            <View style={styles.stepContent}>
-              <View style={[styles.iconBadge, { backgroundColor: 'rgba(0,219,231,0.08)' }]}>
-                <Brain size={28} color={MD3Colors.primaryFixedDim} strokeWidth={1.5} />
-              </View>
-              <Text style={styles.stepTitle}>{t.feedback.helpImproveAI}</Text>
-              <Text style={styles.stepSubtitle}>
-                {t.feedback.consentQuestion}
-              </Text>
-              <View style={styles.consentNote}>
-                <Text style={styles.consentNoteText}>
-                  {t.feedback.consentNote}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.consentYes}
-                onPress={() => handleAiConsent(true)}
-                disabled={saving}
-                activeOpacity={0.85}
-              >
-                <LinearGradient
-                  colors={[MD3Colors.primaryFixedDim, MD3Colors.primaryFixed]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.consentGradient}
-                >
-                  <Text style={styles.consentYesText}>{saving ? t.common.saving : t.feedback.yesAuthorize}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.consentNo}
-                onPress={() => handleAiConsent(false)}
-                disabled={saving}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.consentNoText}>{t.feedback.keepPrivate}</Text>
-              </TouchableOpacity>
             </View>
           )}
 
@@ -314,43 +285,5 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: MD3Colors.primaryFixedDim,
-  },
-  consentNote: {
-    backgroundColor: 'rgba(0,219,231,0.06)',
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0,219,231,0.12)',
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  consentNoteText: {
-    fontFamily: 'HankenGrotesk-Regular',
-    fontSize: 12,
-    color: MD3Colors.onSurfaceVariant,
-    lineHeight: 18,
-  },
-  consentYes: {
-    borderRadius: Radii.md,
-    overflow: 'hidden',
-    marginBottom: Spacing.md,
-  },
-  consentGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  consentYesText: {
-    fontFamily: 'HankenGrotesk-SemiBold',
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  consentNo: {
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  consentNoText: {
-    fontFamily: 'HankenGrotesk-Regular',
-    fontSize: 14,
-    color: MD3Colors.onSurfaceVariant,
   },
 });

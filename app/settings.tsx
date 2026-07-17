@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FadeInView } from '@/components/FadeInView';
 import {
@@ -9,26 +9,35 @@ import {
   CreditCard,
   Bell,
   Mail,
-  Cpu,
   FileText,
   Shield,
   Globe,
   ArrowLeft,
+  Brain,
 } from 'lucide-react-native';
 import { AppBackground } from '@/components/AppBackground';
 import { GlassCard } from '@/components/GlassCard';
-import { MD3Colors, Spacing, Radii } from '@/lib/theme';
+import { MD3Colors, Spacing } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
+import { formatPlanLabel } from '@/lib/plan-access';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useI18n } from '@/lib/i18n';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, updateAllowAiTraining } = useAuth();
+  const { plan, loading: planLoading } = useSubscriptionAccess(profile?.id);
   const { t, language, setLanguage, availableLanguages } = useI18n();
   const [pushAlerts, setPushAlerts] = useState(true);
   const [emailSummaries, setEmailSummaries] = useState(false);
+  const [savingAiPref, setSavingAiPref] = useState(false);
 
-  const isPremium = profile?.plan_type === 'premium' || profile?.plan_type === 'garage';
+  async function handleAiTrainingToggle() {
+    if (savingAiPref) return;
+    setSavingAiPref(true);
+    await updateAllowAiTraining(!(profile?.allow_ai_training ?? false));
+    setSavingAiPref(false);
+  }
 
   return (
     <AppBackground>
@@ -99,7 +108,9 @@ export default function SettingsScreen() {
                 <Text style={styles.groupRowLabel}>{t.settings.subscription.manage}</Text>
               </View>
               <View style={styles.planChip}>
-                <Text style={styles.planChipText}>{profile?.plan_type?.toUpperCase() ?? 'FREE'}</Text>
+                <Text style={styles.planChipText}>
+                  {planLoading ? '…' : formatPlanLabel(plan).toUpperCase()}
+                </Text>
               </View>
             </TouchableOpacity>
           </GlassCard>
@@ -122,6 +133,29 @@ export default function SettingsScreen() {
                 <Text style={styles.groupRowLabel}>Email Summaries</Text>
               </View>
               <ToggleSwitch value={emailSummaries} onValueChange={setEmailSummaries} />
+            </View>
+          </GlassCard>
+        </FadeInView>
+
+        {/* Privacy */}
+        <FadeInView delay={350}>
+          <SectionTitle>{t.settings.privacy.title}</SectionTitle>
+          <GlassCard style={styles.groupCard}>
+            <View style={styles.privacyBlock}>
+              <View style={styles.privacyHeader}>
+                <Brain size={20} color={MD3Colors.primaryFixedDim} strokeWidth={1.5} />
+                <Text style={styles.privacyTitle}>{t.settings.privacy.improveTitle}</Text>
+              </View>
+              <View style={styles.privacyRow}>
+                <View style={styles.privacyTextWrap}>
+                  <Text style={styles.groupRowLabel}>{t.settings.privacy.aiTrainingLabel}</Text>
+                  <Text style={styles.privacyDescription}>{t.settings.privacy.aiTrainingDescription}</Text>
+                </View>
+                <ToggleSwitch
+                  value={profile?.allow_ai_training ?? false}
+                  onValueChange={handleAiTrainingToggle}
+                />
+              </View>
             </View>
           </GlassCard>
         </FadeInView>
@@ -229,6 +263,24 @@ const styles = StyleSheet.create({
   groupRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   groupRowLabel: { fontFamily: 'HankenGrotesk-Regular', fontSize: 16, color: MD3Colors.onSurface },
   groupRowSublabel: { fontFamily: 'HankenGrotesk-Regular', fontSize: 12, color: MD3Colors.onSurfaceVariant, marginTop: 2 },
+
+  privacyBlock: { paddingHorizontal: 16, paddingVertical: 14 },
+  privacyHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: Spacing.md },
+  privacyTitle: {
+    flex: 1,
+    fontFamily: 'HankenGrotesk-SemiBold',
+    fontSize: 15,
+    color: MD3Colors.onSurface,
+  },
+  privacyRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  privacyTextWrap: { flex: 1 },
+  privacyDescription: {
+    fontFamily: 'HankenGrotesk-Regular',
+    fontSize: 12,
+    color: MD3Colors.onSurfaceVariant,
+    marginTop: 4,
+    lineHeight: 17,
+  },
 
   langIcon: { marginRight: -8 },
   langIconPlaceholder: { width: 20, marginRight: -8 },

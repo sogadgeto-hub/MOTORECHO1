@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text, Animated } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { Colors } from '@/lib/theme';
+import { Colors, Animation } from '@/lib/theme';
 
 interface HealthScoreGaugeProps {
   score: number;
   size?: number;
   strokeWidth?: number;
+  label?: string;
 }
 
-export function HealthScoreGauge({ score, size = 180, strokeWidth = 14 }: HealthScoreGaugeProps) {
+export function HealthScoreGauge({ score, size = 180, strokeWidth = 14, label }: HealthScoreGaugeProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
@@ -17,13 +18,13 @@ export function HealthScoreGauge({ score, size = 180, strokeWidth = 14 }: Health
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [dashOffset, setDashOffset] = useState(circumference);
 
-  const color = score >= 80 ? Colors.success : score >= 50 ? Colors.warning : Colors.danger;
+  const color = score >= 85 ? Colors.success : score >= 70 ? Colors.warning : score >= 50 ? '#FF9F43' : Colors.danger;
   const gradientId = `gauge-${score}`;
 
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: score / 100,
-      duration: 1500,
+      duration: Animation.slow * 5,
       useNativeDriver: false,
     }).start();
 
@@ -68,7 +69,7 @@ export function HealthScoreGauge({ score, size = 180, strokeWidth = 14 }: Health
       </Svg>
       <View style={[styles.textContainer, { width: size, height: size }]}>
         <Text style={[styles.scoreText, { color }]}>{score}</Text>
-        <Text style={styles.labelText}>Health Score</Text>
+        <Text style={styles.labelText}>{label ?? 'Health Score'}</Text>
       </View>
     </View>
   );

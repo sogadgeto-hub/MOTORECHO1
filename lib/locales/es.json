@@ -160,9 +160,15 @@
     "title": "Agregar tu vehículo",
     "subtitle": "Cuéntanos sobre tu coche para que la IA pueda proporcionar diagnósticos precisos",
     "brand": "Marca",
+    "brandChooseTitle": "Elija la marca",
     "brandPlaceholder": "Seleccionar una marca",
     "brandSearch": "Buscar marca o país...",
     "brandNoResults": "No se encontraron marcas",
+    "brandPopularSection": "Marcas populares",
+    "brandSeeAll": "Ver todas las marcas",
+    "brandAllSection": "Todas las marcas",
+    "brandClearSearch": "Borrar búsqueda",
+    "brandLoadError": "No se pudieron cargar las marcas. Compruebe su conexión.",
     "model": "Modelo",
     "modelPlaceholder": "ej. Serie 3, Model 3, A4",
     "year": "Año",
@@ -231,9 +237,68 @@
     "tapToStart": "Toca para comenzar",
     "tapToStop": "Toca para detener",
     "permissionRequired": "Se requiere permiso del micrófono para grabar el sonido del motor.",
+    "permissionDeniedSettings": "Micrófono denegado. Activa el acceso al micrófono en los ajustes de Android para MotorEcho / Expo Go.",
     "failedToStart": "Error al iniciar la grabación. Por favor, inténtalo de nuevo.",
     "recordingFailed": "Error en la grabación. Por favor, inténtalo de nuevo.",
-    "processingFailed": "Error al procesar la grabación."
+    "processingFailed": "Error al procesar la grabación.",
+    "previewSubtitle": "Escucha la grabación o inicia una nueva captura",
+    "playPreview": "Escuchar grabación",
+    "playingPreview": "Reproduciendo...",
+    "restartRecording": "Reiniciar",
+    "confirmAnalyze": "Iniciar análisis",
+    "previewFailed": "No se puede reproducir la grabación. Puedes reiniciar.",
+    "notAuthenticated": "Sesión expirada. Inicia sesión de nuevo y vuelve a grabar."
+  },
+  "recordingGuide": {
+    "title": "Asistente de grabación",
+    "stepProgress": "Paso {{current}} / {{total}}",
+    "continue": "Continuar",
+    "startRecording": "Iniciar grabación",
+    "preflightTitle": "Comprobaciones",
+    "preflightSubtitle": "Verificando condiciones de grabación",
+    "steps": {
+      "startEngine": "Arranca el motor.",
+      "openHood": "Abre el capó si puedes hacerlo con seguridad.",
+      "openHoodHint": "Si el motor es inaccesible, puedes grabar desde el exterior.",
+      "phoneDistance": "Acerca el teléfono a unos 30 cm del motor.",
+      "noSpeaking": "Evita hablar.",
+      "quietEnvironment": "Apaga la radio y aléjate del tráfico.",
+      "readyToRecord": "Cuando estés listo, inicia la grabación."
+    },
+    "qualityIndicator": {
+      "title": "Calidad de audio",
+      "levels": {
+        "excellent": "Excelente",
+        "good": "Correcta",
+        "poor": "Baja"
+      }
+    },
+    "qualityBar": {
+      "title": "Calidad de la grabación"
+    },
+    "summary": {
+      "title": "Calidad de la grabación",
+      "scoreLabel": "Puntuación",
+      "duration": "Duración",
+      "volume": "Volumen medio",
+      "levels": {
+        "excellent": "Excelente",
+        "good": "Buena",
+        "fair": "Correcta",
+        "poor": "Baja"
+      }
+    },
+    "advice": {
+      "batteryLow": "Batería baja. Conecta el teléfono para evitar interrupciones.",
+      "bluetoothHeadset": "Para mejor calidad, usa directamente el micrófono del teléfono.",
+      "rerecordRecommendation": "Recomendamos volver a grabar para mejorar la precisión del diagnóstico.",
+      "issues": {
+        "silence": "Se detecta poco sonido. Comprueba que el motor esté en marcha.",
+        "clipping": "Micrófono saturado. Aleja ligeramente el teléfono.",
+        "too_quiet": "Acerca ligeramente el teléfono.",
+        "high_noise": "El ruido ambiente es importante."
+      }
+    }
   },
   "processing": {
     "title": "Análisis IA en progreso",
@@ -241,12 +306,18 @@
     "step2": "Analizando frecuencias",
     "step3": "Generando informe",
     "analysisInterrupted": "El análisis fue interrumpido. Por favor, inténtalo de nuevo con una grabación clara del motor.",
+    "missingAudio": "No hay archivo de audio para analizar. Vuelve a grabar.",
+    "notAuthenticated": "Sesión expirada. Inicia sesión de nuevo e inténtalo otra vez.",
+    "failedTitle": "Análisis imposible",
+    "retryRecording": "Volver a la grabación",
     "messages": {
       "0": "Escuchando frecuencias del motor...",
       "1": "Analizando firmas acústicas...",
       "2": "Detectando anomalías...",
       "3": "Generando informe de diagnóstico..."
-    }
+    },
+    "completeTitle": "Diagnóstico completado",
+    "completeSubtitle": "Preparando su informe personalizado..."
   },
   "result": {
     "diagnosticReport": "Informe de diagnóstico",
@@ -260,7 +331,9 @@
     "newAnalysis": "Nuevo análisis",
     "noIssueDetected": "No se detectó ningún problema específico",
     "feedbackButton": "¿Era correcto el diagnóstico?",
+    "helpMotorEcho": "Ayudar a MotorEcho",
     "betaBanner": "Beta — La IA MotorEcho mejora gracias a las contribuciones de la comunidad",
+    "simulatedBanner": "Resultado beta simulado — el audio se guarda, el análisis IA avanzado llegará pronto",
     "healthy": {
       "title": "Saludable",
       "description": "El motor suena saludable y dentro de los parámetros acústicos normales."
@@ -279,6 +352,106 @@
       "timingChain": "Cadena de distribución",
       "engineKnock": "Picado del motor",
       "idle": "Ralentí"
+    },
+    "access": {
+      "generalStatus": {
+        "normal": "Normal",
+        "a_surveiller": "A vigilar",
+        "anomalie_probable": "Anomalía probable"
+      },
+      "simplifiedSeverity": {
+        "faible": "Baja",
+        "moyenne": "Media",
+        "elevee": "Alta"
+      },
+      "categories": {
+        "engine": "Motor",
+        "turbo": "Turbo / sobrealimentación",
+        "injection": "Inyección / alimentación",
+        "distribution": "Distribución",
+        "exhaust": "Escape",
+        "cooling": "Refrigeración",
+        "electrical": "Eléctrico",
+        "transmission": "Transmisión",
+        "suspension": "Suspensión / rodamiento",
+        "belt": "Correas",
+        "intake": "Admisión",
+        "other": "General"
+      },
+      "urgencyLevels": {
+        "low": "Baja",
+        "medium": "Media",
+        "high": "Alta",
+        "critical": "Crítica"
+      },
+      "workshopPriorityLevels": {
+        "routine": "Rutina",
+        "planifier": "Planificar",
+        "urgent": "Urgente",
+        "immediat": "Inmediata"
+      },
+      "shortAdviceLabel": "Consejo",
+      "lockedTitle": "Detalles Premium bloqueados",
+      "lockedDescription": "Pasa a Premium para ver el nombre exacto de la avería, síntomas de audio, costes estimados y consejos detallados.",
+      "upgradeToPremium": "Pasar a Premium",
+      "issueName": "Avería identificada",
+      "description": "Descripción",
+      "audioSymptoms": "Síntomas de audio",
+      "urgency": "Urgencia",
+      "estimatedCost": "Coste estimado",
+      "repairTime": "Tiempo de reparación",
+      "canDrive": "Seguir conduciendo",
+      "canDriveYes": "Sí, con precaución",
+      "canDriveNo": "No recomendado",
+      "detailedAdvice": "Consejos detallados",
+      "gravityLevel": "Nivel de gravedad",
+      "workshopSection": "Sección taller",
+      "technicalId": "ID técnico",
+      "technicalCategory": "Categoría técnica",
+      "workshopPriority": "Prioridad taller",
+      "mechanicNotes": "Notas del mecánico",
+      "mechanicNotesPlaceholder": "Campo reservado — notas de taller próximamente",
+      "pdfReport": "Informe PDF profesional",
+      "pdfReportPlanned": "Exportación PDF prevista — secciones:",
+      "hoursUnit": "h"
+    },
+    "report": {
+      "completed": "Diagnóstico completado",
+      "generalHealth": "Estado general del vehículo",
+      "healthGood": "Bueno",
+      "healthWatch": "Vigilancia",
+      "healthUrgent": "Intervención urgente",
+      "healthGoodHint": "El perfil sonoro del motor es compatible con un funcionamiento normal.",
+      "healthHint": "Recomendamos un seguimiento para confirmar la evolución del síntoma.",
+      "detectionProbability": "Probabilidad de detección",
+      "confidenceIndex": "Índice de confianza IA",
+      "confidenceNote": "Esta puntuación refleja la coherencia entre su grabación y nuestra base de diagnósticos.",
+      "likelyPart": "Pieza probablemente afectada",
+      "noSpecificPart": "Ninguna pieza específica identificada",
+      "whyWeThink": "¿Por qué MotorEcho piensa esto?",
+      "possibleConsequences": "Consecuencias posibles",
+      "canKeepDriving": "¿Se puede seguir conduciendo?",
+      "driveYes": "Sí",
+      "driveYesShort": "Sí, en distancia corta",
+      "driveNo": "No",
+      "urgency": "Urgencia",
+      "averageCost": "Coste medio",
+      "costHint": "Rango indicativo según talleres asociados y marca del vehículo.",
+      "repairTime": "Tiempo medio de reparación",
+      "repairTimeHint": "Duración estimada en taller, sin diagnóstico adicional.",
+      "motorEchoAdvice": "Consejos MotorEcho",
+      "summary": "Resumen",
+      "category": "Categoría",
+      "severity": "Gravedad",
+      "premiumPreviewHint": "Premium desbloquea análisis detallado, costes y consejos personalizados."
+    },
+    "reportTiers": {
+      "free": "Gratis",
+      "premium": "Premium",
+      "garage": "Garage Pro",
+      "lockedGarageTitle": "Informe Garage Pro bloqueado",
+      "lockedGarageDescription": "Pasa a Garage Pro para secciones de taller, notas del mecánico e informes PDF profesionales.",
+      "upgradeGarage": "Pasar a Garage Pro"
     }
   },
   "history": {
@@ -314,6 +487,210 @@
     "soundsCollected": "Sonidos recopilados",
     "contributors": "Contribuidores",
     "confirmed": "Confirmados"
+  },
+  "explainer": {
+    "sections": {
+      "diagnosis": "Lo que MotorEcho ha detectado",
+      "confidence": "Nivel de confianza",
+      "driving": "¿Se puede seguir conduciendo?",
+      "urgency": "Urgencia",
+      "risks": "Riesgos posibles",
+      "garage": "Recomendación taller",
+      "repair": "Estimación reparación"
+    },
+    "confidence": {
+      "very_high": {
+        "headline": "Confianza muy alta",
+        "text": "La firma sonora es muy compatible con esta hipótesis. Las características acústicas de su grabación convergen claramente."
+      },
+      "high": {
+        "headline": "Confianza alta",
+        "text": "El nivel de confianza de esta detección es alto. El análisis acústico es coherente con este tipo de síntoma."
+      },
+      "medium": {
+        "headline": "Confianza media",
+        "text": "La hipótesis es plausible, pero otras causas siguen siendo posibles. Una revisión en taller lo confirmará."
+      },
+      "low": {
+        "headline": "Confianza baja",
+        "text": "Varias causas siguen siendo posibles. Le recomendamos confirmar este diagnóstico con un profesional."
+      }
+    },
+    "driving": {
+      "normal": {
+        "headline": "Uso normal",
+        "detail": "Puede seguir utilizando su vehículo con normalidad, prestando atención a la evolución del ruido."
+      },
+      "short_trips": {
+        "headline": "Solo trayectos cortos",
+        "detail": "Puede realizar únicamente trayectos cortos. Evite distancias largas y aceleraciones fuertes."
+      },
+      "avoid_prolonged": {
+        "headline": "Uso limitado",
+        "detail": "Le recomendamos evitar un uso prolongado. Programe una revisión en taller pronto."
+      },
+      "stop_use": {
+        "headline": "Detener el uso",
+        "detail": "Le recomendamos no utilizar su vehículo hasta un control por un profesional."
+      }
+    },
+    "urgency": {
+      "very_low": {
+        "label": "Muy baja",
+        "text": "No se requiere acción urgente. Continúe conduciendo con normalidad y permanezca atento."
+      },
+      "low": {
+        "label": "Baja",
+        "text": "Observe la evolución del síntoma. Puede planificarse una revisión sin urgencia inmediata."
+      },
+      "medium": {
+        "label": "Media",
+        "text": "Se aconseja una revisión en unos días para evitar un desgaste progresivo."
+      },
+      "high": {
+        "label": "Alta",
+        "text": "Recomendamos acudir al taller pronto para limitar los riesgos mecánicos."
+      },
+      "critical": {
+        "label": "Crítica",
+        "text": "Se aconseja encarecidamente una intervención rápida. Evite exigir el motor innecesariamente."
+      }
+    },
+    "diagnosisNormal": {
+      "lead": "Su grabación no presenta una señal sonora preocupante por el momento.",
+      "followUp": "El motor parece funcionar dentro de parámetros acústicos habituales. Siga vigilando su comportamiento."
+    },
+    "diagnosisByIssue": {
+      "turbo_issue": {
+        "lead": "Hemos detectado un ruido compatible con una anomalía del sistema de sobrealimentación (turbocompresor).",
+        "followUp": "Esta estimación se basa en las características acústicas de su grabación, sin sustituir un diagnóstico mecánico en vehículo."
+      },
+      "engine_knocking": {
+        "lead": "Hemos detectado un ruido que puede corresponder a un golpeteo del motor bajo carga o aceleración.",
+        "followUp": "Este tipo de firma sonora merece atención. Una revisión en taller confirmará el origen."
+      },
+      "timing_chain_noise": {
+        "lead": "Hemos detectado un ruido que puede estar relacionado con la cadena o correa de distribución.",
+        "followUp": "Esta hipótesis se basa en el análisis acústico de su grabación del motor."
+      },
+      "injector_noise": {
+        "lead": "Hemos detectado un ruido que puede provenir del sistema de inyección.",
+        "followUp": "Un control dirigido de la inyección confirmará o descartará esta hipótesis."
+      },
+      "idle_instability": {
+        "lead": "Hemos detectado una irregularidad sonora al ralentí.",
+        "followUp": "Este síntoma puede tener varias causas. Un diagnóstico en taller precisará el origen."
+      }
+    },
+    "diagnosisByCategory": {
+      "turbo": {
+        "lead": "Hemos detectado un ruido compatible con una anomalía del sistema de sobrealimentación.",
+        "followUp": "Esta estimación se basa en el análisis acústico de su grabación."
+      },
+      "engine": {
+        "lead": "Hemos detectado un ruido que puede indicar una anomalía en el motor.",
+        "followUp": "Un control mecánico confirmará esta hipótesis."
+      },
+      "injection": {
+        "lead": "Hemos detectado un ruido que puede provenir del sistema de inyección o alimentación.",
+        "followUp": "Este análisis acústico orienta hacia una verificación dirigida en taller."
+      },
+      "distribution": {
+        "lead": "Hemos detectado un ruido que puede estar relacionado con la distribución.",
+        "followUp": "Este tipo de ruido debe ser verificado por un profesional."
+      }
+    },
+    "diagnosisFallback": {
+      "lead": "Hemos detectado un ruido atípico respecto a un funcionamiento habitual del motor.",
+      "followUp": "Esta estimación se basa en las características acústicas de su grabación."
+    },
+    "risksIntro": "En algunos casos, sin que sea una certeza, los síntomas observados pueden provocar:",
+    "riskItems": {
+      "powerLoss": "Posible pérdida de potencia",
+      "overconsumption": "Posible mayor consumo de combustible",
+      "progressiveWear": "Desgaste progresivo de componentes",
+      "breakdown": "Riesgo de inmovilización del vehículo",
+      "engineDamage": "Riesgo de desgaste acelerado del motor",
+      "costlyRepair": "Reparaciones más costosas si persiste el síntoma",
+      "roughRunning": "Funcionamiento del motor menos regular",
+      "emissions": "Posible aumento de emisiones",
+      "comfort": "Confort de conducción reducido"
+    },
+    "garageByIssue": {
+      "turbo_issue": "Le aconsejamos solicitar un control dirigido del turbocompresor y sus mangueras.",
+      "engine_knocking": "Le aconsejamos revisar el encendido, la sobrealimentación y la calidad del combustible.",
+      "timing_chain_noise": "Le aconsejamos inspeccionar la tensión y el desgaste de la distribución.",
+      "injector_noise": "Le aconsejamos revisar el sistema de inyección e inyectores.",
+      "idle_instability": "Le aconsejamos diagnosticar el ralentí y los sistemas de alimentación."
+    },
+    "garageByCategory": {
+      "turbo": "Le aconsejamos un control dirigido del sistema de sobrealimentación.",
+      "engine": "Le aconsejamos un diagnóstico completo del motor en taller.",
+      "injection": "Le aconsejamos revisar el sistema de inyección.",
+      "distribution": "Le aconsejamos inspeccionar el sistema de distribución."
+    },
+    "garageFallback": "Le aconsejamos hacer verificar este síntoma por un profesional.",
+    "garageFootnote": "Esta recomendación ayudará al taller a ahorrar tiempo durante el diagnóstico.",
+    "repair": {
+      "costRange": "Rango indicativo: {{min}} a {{max}} €",
+      "timeEstimate": "Duración estimada en taller: unas {{hours}} h",
+      "unknownCost": "El coste de reparación dependerá del diagnóstico mecánico confirmado.",
+      "disclaimer": "Estimación indicativa — el presupuesto definitivo lo establecerá el taller tras la inspección."
+    }
+  },
+  "vehicleHealth": {
+    "viewDashboard": "Ver salud del vehículo",
+    "estimationLabel": "Estimación MotorEcho",
+    "vehicleHealthTitle": "Salud del vehículo",
+    "lastAnalysis": "Último análisis",
+    "totalAnalyses": "Número de análisis",
+    "lastAnomaly": "Última anomalía",
+    "evolutionTitle": "Evolución",
+    "statsTitle": "Estadísticas",
+    "timelineTitle": "Historial",
+    "firstAnalysis": "Primer análisis",
+    "lastAnalysisDate": "Fecha del último análisis",
+    "mostFrequentAnomaly": "Anomalía más frecuente",
+    "daysSinceLastAnalysis": "Días desde el último análisis",
+    "analysisReminder": "Le recomendamos un nuevo análisis para seguir la evolución de su vehículo.",
+    "allClear": "Sin novedad",
+    "anomalyDetected": "Anomalía detectada",
+    "noAnalysesYet": "Aún no hay análisis para este vehículo.",
+    "runFirstAnalysis": "Realizar el primer análisis",
+    "newAnalysis": "Nuevo análisis",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "daysAgo": "Hace {{count}} días",
+    "vehicleNotFound": "Vehículo no encontrado",
+    "loadError": "No se pudo cargar la salud del vehículo",
+    "evolution": {
+      "improving": "Su vehículo está mejorando.",
+      "stable": "La salud se mantiene estable.",
+      "declining": "La salud del vehículo está disminuyendo.",
+      "unknown": "No hay suficientes análisis para medir la evolución."
+    },
+    "levels": {
+      "excellent": {
+        "title": "Excelente",
+        "description": "El perfil sonoro es tranquilizador. Mantenga controles regulares."
+      },
+      "good": {
+        "title": "Buen estado",
+        "description": "Su vehículo presenta un perfil sonoro globalmente sano."
+      },
+      "watch": {
+        "title": "Vigilancia",
+        "description": "Algunas señales merecen atención. Se aconseja un análisis de seguimiento."
+      },
+      "advised": {
+        "title": "Intervención aconsejada",
+        "description": "Anomalías recurrentes sugieren un control en taller pronto."
+      },
+      "urgent": {
+        "title": "Intervención urgente",
+        "description": "Las señales detectadas justifican una inspección profesional rápida."
+      }
+    }
   },
   "premium": {
     "title": "MotorEcho Premium",
@@ -418,6 +795,12 @@
       "unlock": "Lo que desbloquearás:",
       "upgradeButton": "Pasar a {{plan}}",
       "maybeLater": "Quizás más tarde"
+    },
+    "purchase": {
+      "noOfferings": "Las suscripciones no están disponibles ahora. Inténtalo más tarde.",
+      "noPackage": "Este plan no está disponible para el ciclo de facturación seleccionado.",
+      "failed": "La compra falló. Comprueba tu conexión e inténtalo de nuevo.",
+      "networkError": "No se pudieron cargar los precios. Comprueba tu conexión de red."
     }
   },
   "settings": {
@@ -442,7 +825,10 @@
       "emailSummaries": "Resúmenes por email"
     },
     "privacy": {
-      "title": "Privacidad"
+      "title": "Privacidad",
+      "improveTitle": "Participar en la mejora de MotorEcho",
+      "aiTrainingLabel": "Autorizar el uso anónimo de mis grabaciones",
+      "aiTrainingDescription": "Sus datos se anonimizan. No se utiliza información personal."
     },
     "help": {
       "title": "Ayuda y soporte"
@@ -479,6 +865,9 @@
     "getStarted": "Comenzar"
   },
   "feedback": {
+    "exitTitle": "¿Le ha sido útil este diagnóstico?",
+    "exitSubtitle": "Su opinión nos ayuda a mejorar la precisión de MotorEcho.",
+    "skipForNow": "Más tarde",
     "wasCorrect": "¿Era correcto el diagnóstico?",
     "helpUsImprove": "Ayúdanos a mejorar confirmando el resultado",
     "actualDiagnosis": "¿Cuál fue el diagnóstico real?",

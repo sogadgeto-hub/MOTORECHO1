@@ -1,23 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Cpu } from 'lucide-react-native';
+import { CheckCircle, Cpu } from 'lucide-react-native';
 import { AppBackground } from '@/components/AppBackground';
-import { Colors, MD3Colors, Spacing } from '@/lib/theme';
-import { analyzeAudio, saveDiagnostic, uploadAudio } from '@/lib/analyzer';
-import { getPrimaryVehicle } from '@/lib/db';
+import { Colors, MD3Colors, Spacing, Radii, Animation, IconSize, IconStroke } from '@/lib/theme';
+import { resolveAudioUriForProcessing, removePendingAudioSession, getPendingAudioSession } from '@/lib/audio';
+import * as FileSystem from 'expo-file-system/legacy';
+import { getPrimaryVehicle, processAudioDiagnostic } from '@/lib/analyzer';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
+import { hapticLight, hapticSuccess } from '@/lib/haptics';
 
 export default function ProcessingScreen() {
   const router = useRouter();
-  const { audioUri } = useLocalSearchParams<{ audioUri?: string }>();
+  const { audioSessionId, audioUri, durationMs } = useLocalSearchParams<{
+    audioSessionId?: string;
+    audioUri?: string;
+    durationMs?: string;
+  }>();
   const { user } = useAuth();
+  const { refreshUsage } = useSubscriptionAccess();
   const { t } = useI18n();
   const [textIndex, setTextIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'analyzing' | 'complete'>('analyzing');
   const spinAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [progressStep, setProgressStep] = useState(0);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const completeFadeAnim = useRef(new Animated.Value(0)).current;
+  const hasStarted = useRef(false);
 
   const analysisTexts = [
     t.processing.messages['0'],
@@ -43,60 +57,109 @@ export default function ProcessingScreen() {
       setTextIndex((prev) => (prev + 1) % analysisTexts.length);
     }, 2500);
 
-    const fadeIn = Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true });
+    const fadeIn = Animated.timing(fadeAnim, { toValue: 1, duration: Animation.normal, useNativeDriver: true });
     fadeIn.start();
 
-    runAnalysis();
+    void hapticLight();
+
+    const progressInterval = setInterval(() => {
+      setProgressStep((prev) => Math.min(prev + 1, 3));
+    }, 2200);
+
+    if (!hasStarted.current) {
+      hasStarted.current = true;
+      runAnalysis();
+    }
 
     return () => {
       spin.stop();
       pulse.stop();
       clearInterval(textInterval);
+      clearInterval(progressInterval);
     };
   }, []);
 
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progressStep / 3,
+      duration: Animation.normal,
+      useNativeDriver: false,
+    }).start();
+  }, [progressStep, progressAnim]);
+
   async function runAnalysis() {
     try {
-      const vehicle = await getPrimaryVehicle();
-
-      // Upload audio to storage (non-blocking — don't fail analysis if upload fails)
-      let audioPath: string | null = null;
-      if (audioUri && user) {
-        audioPath = await uploadAudio(audioUri, user.id);
+      if (!user) {
+        throw new Error(t.processing.notAuthenticated);
       }
 
-      const vehicleInfo = vehicle ? {
-        brand: vehicle.brand,
-        model: vehicle.model,
-        year: vehicle.year,
-        fuel_type: vehicle.fuel_type,
-      } : null;
+      const resolvedUri = await resolveAudioUriForProcessing(audioSessionId, audioUri ?? null);
 
-      const result = await analyzeAudio(vehicle?.id ?? null);
-      const record = await saveDiagnostic(result, vehicle?.id ?? null, audioPath, vehicleInfo);
+      const fileInfo = await FileSystem.getInfoAsync(resolvedUri);
+      console.log('[processing] FileSystem.getInfoAsync:', JSON.stringify(fileInfo));
+      const fileSize = 'size' in fileInfo && typeof fileInfo.size === 'number' ? fileInfo.size : 0;
+      console.log('[processing] file size:', fileSize);
+
+      if (!fileInfo.exists || fileSize <= 0) {
+        throw new Error(t.processing.missingAudio);
+      }
+
+      const session = audioSessionId ? getPendingAudioSession(audioSessionId) : null;
+      const parsedDuration = session?.durationMs ?? parseInt(durationMs ?? '0', 10);
+
+      const vehicle = await getPrimaryVehicle();
+      const vehicleInfo = vehicle
+        ? {
+            brand: vehicle.brand,
+            model: vehicle.model,
+            year: vehicle.year,
+            fuel_type: vehicle.fuel_type,
+          }
+        : null;
+
+      const { record, analysis } = await processAudioDiagnostic(
+        resolvedUri,
+        parsedDuration,
+        user.id,
+        vehicle?.id ?? null,
+        vehicleInfo,
+        session?.recordingQuality ?? null
+      );
+
+      if (audioSessionId) {
+        removePendingAudioSession(audioSessionId);
+      }
+
+      await refreshUsage('after_analysis');
+
+      setPhase('complete');
+      setProgressStep(3);
+      void hapticSuccess();
+      Animated.timing(completeFadeAnim, {
+        toValue: 1,
+        duration: Animation.normal,
+        useNativeDriver: true,
+      }).start();
+
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+
       router.replace({
         pathname: '/result',
         params: {
-          result: result.result,
-          type: result.type ?? '',
-          confidence: String(result.confidence),
-          severity: result.severity,
-          recommendation: result.recommendation,
+          result: analysis.result,
+          type: analysis.type ?? '',
+          confidence: String(analysis.confidence),
+          severity: analysis.severity,
+          recommendation: analysis.recommendation,
           recordId: record.id,
+          isSimulated: analysis.isSimulated ? '1' : '0',
+          fromAnalysis: '1',
+          vehicleId: vehicle?.id ?? '',
         },
       });
-    } catch {
-      router.replace({
-        pathname: '/result',
-        params: {
-          result: 'suspicious_noise',
-          type: 'engine_knocking',
-          confidence: '0.65',
-          severity: 'medium',
-          recommendation: t.processing.analysisInterrupted,
-          recordId: '',
-        },
-      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : t.processing.analysisInterrupted;
+      setError(msg);
     }
   }
 
@@ -110,41 +173,85 @@ export default function ProcessingScreen() {
     outputRange: [0.3, 0.8],
   });
 
+  if (error) {
+    return (
+      <AppBackground>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>{t.processing.failedTitle}</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => router.replace('/recording')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.retryButtonText}>{t.processing.retryRecording}</Text>
+          </TouchableOpacity>
+        </View>
+      </AppBackground>
+    );
+  }
+
   return (
     <AppBackground>
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
         <View style={styles.content}>
-          <View style={styles.ringContainer}>
-            <Animated.View style={[styles.ring, { opacity: pulseOpacity }]} />
-            <Animated.View
-              style={[styles.ring2, { opacity: pulseOpacity, transform: [{ rotate: spinInterpolate }] }]}
-            />
-            <View style={styles.iconCircle}>
-              <Cpu size={40} color={MD3Colors.primaryFixedDim} strokeWidth={1.5} />
-            </View>
-          </View>
+          {phase === 'complete' ? (
+            <Animated.View style={[styles.completeBlock, { opacity: completeFadeAnim }]}>
+              <View style={styles.completeIconCircle}>
+                <CheckCircle size={IconSize.xxl} color={MD3Colors.primaryFixedDim} strokeWidth={IconStroke.thin} />
+              </View>
+              <Text style={styles.title}>{t.processing.completeTitle}</Text>
+              <Text style={styles.subtitle}>{t.processing.completeSubtitle}</Text>
+            </Animated.View>
+          ) : (
+            <>
+              <View style={styles.ringContainer}>
+                <Animated.View style={[styles.ring, { opacity: pulseOpacity }]} />
+                <Animated.View
+                  style={[styles.ring2, { opacity: pulseOpacity, transform: [{ rotate: spinInterpolate }] }]}
+                />
+                <View style={styles.iconCircle}>
+                  <Cpu size={IconSize.xxl} color={MD3Colors.primaryFixedDim} strokeWidth={IconStroke.thin} />
+                </View>
+              </View>
 
-          <Text style={styles.title}>{t.processing.title}</Text>
-          <Animated.View style={styles.textContainer}>
-            <Text style={styles.subtitle}>{analysisTexts[textIndex]}</Text>
-          </Animated.View>
+              <Text style={styles.title}>{t.processing.title}</Text>
+              <Animated.View style={styles.textContainer}>
+                <Text style={styles.subtitle}>{analysisTexts[textIndex]}</Text>
+              </Animated.View>
 
-          <View style={styles.stepsContainer}>
-            <View style={styles.stepRow}>
-              <View style={styles.stepDotDone} />
-              <Text style={styles.stepTextDone}>{t.processing.step1}</Text>
-            </View>
-            <View style={styles.stepLineDone} />
-            <View style={styles.stepRow}>
-              <Animated.View style={[styles.stepDotActive, { opacity: pulseOpacity }]} />
-              <Text style={styles.stepTextActive}>{t.processing.step2}</Text>
-            </View>
-            <View style={styles.stepLinePending} />
-            <View style={styles.stepRow}>
-              <View style={styles.stepDotPending} />
-              <Text style={styles.stepTextPending}>{t.processing.step3}</Text>
-            </View>
-          </View>
+              <View style={styles.progressBarTrack}>
+                <Animated.View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['8%', '100%'],
+                      }),
+                    },
+                  ]}
+                />
+              </View>
+
+              <View style={styles.stepsContainer}>
+                <View style={styles.stepRow}>
+                  <View style={styles.stepDotDone} />
+                  <Text style={styles.stepTextDone}>{t.processing.step1}</Text>
+                </View>
+                <View style={styles.stepLineDone} />
+                <View style={styles.stepRow}>
+                  <Animated.View style={[styles.stepDotActive, { opacity: pulseOpacity }]} />
+                  <Text style={styles.stepTextActive}>{t.processing.step2}</Text>
+                </View>
+                <View style={styles.stepLinePending} />
+                <View style={styles.stepRow}>
+                  <View style={styles.stepDotPending} />
+                  <Text style={styles.stepTextPending}>{t.processing.step3}</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
       </Animated.View>
     </AppBackground>
@@ -160,6 +267,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
+  },
+  completeBlock: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  completeIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.successBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+    borderWidth: 2,
+    borderColor: Colors.primaryGlow,
   },
   ringContainer: {
     width: RING_SIZE,
@@ -189,7 +311,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(0,219,231,0.08)',
+    backgroundColor: Colors.successBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -207,6 +329,21 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     fontSize: 15,
     color: MD3Colors.onSurfaceVariant,
+    textAlign: 'center',
+  },
+  progressBarTrack: {
+    width: '100%',
+    maxWidth: 280,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.surfaceElevated,
+    marginTop: Spacing.lg,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: MD3Colors.primaryFixedDim,
   },
   stepsContainer: {
     width: '100%',
@@ -237,7 +374,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.border,
   },
   stepTextDone: {
     fontFamily: 'Inter-Medium',
@@ -252,7 +389,7 @@ const styles = StyleSheet.create({
   stepTextPending: {
     fontFamily: 'Inter-Regular',
     fontSize: 14,
-    color: 'rgba(185,202,203,0.4)',
+    color: Colors.textDisabled,
   },
   stepLineDone: {
     width: 1,
@@ -263,7 +400,41 @@ const styles = StyleSheet.create({
   stepLinePending: {
     width: 1,
     height: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.border,
     marginLeft: 5,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  errorTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 20,
+    color: MD3Colors.onSurface,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: Colors.danger,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  retryButton: {
+    alignSelf: 'center',
+    marginTop: Spacing.md,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radii.md,
+    backgroundColor: Colors.primaryLight,
+    borderWidth: 1,
+    borderColor: MD3Colors.primaryFixedDim,
+  },
+  retryButtonText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: MD3Colors.primaryFixedDim,
   },
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,24 +7,35 @@ import { ArrowLeft, Check, Crown, Building2, Zap, FileText, Clock, Shield, Car }
 import { AppBackground } from '@/components/AppBackground';
 import { GlassCard } from '@/components/GlassCard';
 import { MD3Colors, Spacing, Radii } from '@/lib/theme';
-import { useAuth } from '@/lib/auth';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useI18n } from '@/lib/i18n';
 
 type PlanType = 'free' | 'premium' | 'garage';
 
 export default function PremiumScreen() {
   const router = useRouter();
-  const { profile, updatePlan, planDetails } = useAuth();
+  const {
+    plan: serverPlan,
+    getPriceLabel,
+    purchasePlan,
+    refresh,
+    offeringsLoading,
+    offeringsError,
+  } = useSubscriptionAccess();
   const { t } = useI18n();
-  const [selectedPlan, setSelectedPlan] = useState<PlanType>(profile?.plan_type ?? 'free');
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>('free');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(false);
+  const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedPlan(serverPlan);
+  }, [serverPlan]);
 
   const plans = [
     {
       id: 'free' as PlanType,
       name: t.premium.plans.free.name,
-      price: 0,
       period: t.premium.plans.free.period,
       features: [
         { text: t.premium.plans.free.features.vehicle, included: true },
@@ -40,8 +51,6 @@ export default function PremiumScreen() {
     {
       id: 'premium' as PlanType,
       name: t.premium.plans.premium.name,
-      price: 2.99,
-      yearlyPrice: 29.99,
       period: t.premium.plans.premium.period,
       isPopular: true,
       features: [
@@ -58,7 +67,6 @@ export default function PremiumScreen() {
     {
       id: 'garage' as PlanType,
       name: t.premium.plans.garage.name,
-      price: 49,
       period: t.premium.plans.garage.period,
       highlight: true,
       features: [
@@ -74,24 +82,68 @@ export default function PremiumScreen() {
     },
   ];
 
+  function resolvePriceLabel(plan: PlanType): string {
+    if (plan === 'free') {
+      return t.premium.plans.free.name;
+    }
+
+    if (offeringsLoading) {
+      return t.common.loading;
+    }
+
+    const label = getPriceLabel(plan, billingCycle);
+    return label ?? '—';
+  }
+
   async function handleUpgrade(plan: PlanType) {
     if (plan === 'free') {
       router.back();
       return;
     }
 
+    if (offeringsError === 'empty' || offeringsError === 'not_configured') {
+      setPurchaseMessage(t.premium.purchase.noOfferings);
+      return;
+    }
+
+    if (offeringsError === 'network') {
+      setPurchaseMessage(t.premium.purchase.networkError);
+      return;
+    }
+
     setLoading(true);
+    setPurchaseMessage(null);
+
     try {
-      const result = await updatePlan(plan);
-      if (result.error) {
-        console.error('Failed to update plan:', result.error);
-      } else {
+      const result = await purchasePlan(plan, billingCycle);
+
+      if (result.ok) {
+        await refresh();
         router.back();
+        return;
       }
+
+      if (result.cancelled) {
+        return;
+      }
+
+      if (result.reason === 'no_package') {
+        setPurchaseMessage(t.premium.purchase.noPackage);
+        return;
+      }
+
+      setPurchaseMessage(t.premium.purchase.failed);
     } finally {
       setLoading(false);
     }
   }
+
+  const offeringsBannerMessage =
+    offeringsError === 'network'
+      ? t.premium.purchase.networkError
+      : offeringsError === 'empty' || offeringsError === 'not_configured'
+        ? t.premium.purchase.noOfferings
+        : null;
 
   return (
     <AppBackground>
@@ -107,6 +159,12 @@ export default function PremiumScreen() {
           <Text style={styles.headerTitle}>{t.premium.choosePlan}</Text>
           <Text style={styles.headerSubtitle}>{t.premium.subtitle}</Text>
         </FadeInView>
+
+        {(offeringsBannerMessage || purchaseMessage) && (
+          <FadeInView delay={120} style={styles.messageBanner}>
+            <Text style={styles.messageBannerText}>{purchaseMessage ?? offeringsBannerMessage}</Text>
+          </FadeInView>
+        )}
 
         {/* Billing Cycle Toggle */}
         <FadeInView delay={150} style={styles.billingToggle}>
@@ -136,8 +194,9 @@ export default function PremiumScreen() {
               key={plan.id}
               plan={plan}
               isSelected={selectedPlan === plan.id}
-              isCurrentPlan={profile?.plan_type === plan.id}
+              isCurrentPlan={serverPlan === plan.id}
               billingCycle={billingCycle}
+              priceLabel={resolvePriceLabel(plan.id)}
               onSelect={() => setSelectedPlan(plan.id)}
               onUpgrade={() => handleUpgrade(plan.id)}
               loading={loading}
@@ -198,27 +257,26 @@ type PlanFeature = { text: string; included: boolean };
 type Plan = {
   id: PlanType;
   name: string;
-  price: number;
   period: string;
-  yearlyPrice?: number;
   isPopular?: boolean;
   highlight?: boolean;
   features: PlanFeature[];
 };
 
-function PlanCard({ plan, isSelected, isCurrentPlan, billingCycle, onSelect, onUpgrade, loading, delay, t }: {
+function PlanCard({ plan, isSelected, isCurrentPlan, billingCycle, priceLabel, onSelect, onUpgrade, loading, delay, t }: {
   plan: Plan;
   isSelected: boolean;
   isCurrentPlan: boolean;
   billingCycle: 'monthly' | 'yearly';
+  priceLabel: string;
   onSelect: () => void;
   onUpgrade: () => void;
   loading: boolean;
   delay: number;
   t: any;
 }) {
-  const displayPrice = billingCycle === 'yearly' && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
-  const priceLabel = billingCycle === 'yearly' ? '/year' : '/mo';
+  const pricePeriodLabel = billingCycle === 'yearly' ? t.premium.perYear : t.premium.perMonth;
+  const isFreePlan = plan.id === 'free';
 
   return (
     <FadeInView delay={delay}>
@@ -248,9 +306,11 @@ function PlanCard({ plan, isSelected, isCurrentPlan, billingCycle, onSelect, onU
           <Text style={styles.planName}>{plan.name}</Text>
           <View style={styles.planPriceRow}>
             <Text style={[styles.planPrice, plan.isPopular && styles.planPricePremium, plan.highlight && styles.planPriceGarage]}>
-              {plan.price === 0 ? t.premium.plans.free.name : `€${displayPrice}`}
+              {priceLabel}
             </Text>
-            {plan.price > 0 && <Text style={styles.planPeriod}>{priceLabel}</Text>}
+            {!isFreePlan && priceLabel !== t.common.loading && priceLabel !== '—' && (
+              <Text style={styles.planPeriod}>{pricePeriodLabel}</Text>
+            )}
           </View>
         </View>
 
@@ -358,6 +418,22 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontFamily: 'HankenGrotesk-Bold', fontSize: 28, color: MD3Colors.onSurface, marginBottom: 4 },
   headerSubtitle: { fontFamily: 'HankenGrotesk-Regular', fontSize: 14, color: MD3Colors.onSurfaceVariant, textAlign: 'center' },
+
+  messageBanner: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    backgroundColor: 'rgba(255, 100, 100, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 100, 100, 0.25)',
+  },
+  messageBannerText: {
+    fontFamily: 'HankenGrotesk-Regular',
+    fontSize: 13,
+    color: MD3Colors.onSurface,
+    textAlign: 'center',
+  },
 
   billingToggle: {
     flexDirection: 'row',

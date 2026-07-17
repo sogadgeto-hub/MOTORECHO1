@@ -17,8 +17,9 @@ import {
 } from '@expo-google-fonts/hanken-grotesk';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/lib/auth';
-import { View, ActivityIndicator } from 'react-native';
-import { MD3Colors } from '@/lib/theme';
+import { SubscriptionEngineProvider } from '@/lib/subscription-engine/context';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
+import { Animation } from '@/lib/theme';
 import { I18nProvider } from '@/lib/i18n';
 
 SplashScreen.preventAutoHideAsync();
@@ -33,47 +34,43 @@ function RootNavigator() {
   }, [loading]);
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: MD3Colors.background }}>
-        <ActivityIndicator size="large" color={MD3Colors.primaryFixedDim} />
-      </View>
-    );
+    return <AppLoadingScreen />;
   }
 
-  // Not authenticated — splash → plans → auth flow
-  if (!user) {
-    return (
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="splash" options={{ headerShown: false }} />
-        <Stack.Screen name="plans" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="auth" options={{ headerShown: false, animation: 'slide_from_right' }} />
-        <Stack.Screen name="forgot-password" options={{ headerShown: false, animation: 'slide_from_right' }} />
-      </Stack>
-    );
-  }
+  const stackOptions = {
+    headerShown: false,
+    animation: 'slide_from_right' as const,
+    animationDuration: Animation.normal,
+  };
 
-  // Authenticated but needs vehicle setup
-  if (profile && !profile.onboarding_completed) {
-    return (
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="payment" options={{ headerShown: false, animation: 'slide_from_right' }} />
-        <Stack.Screen name="vehicle-setup" options={{ headerShown: false, animation: 'slide_from_right' }} />
-      </Stack>
-    );
-  }
-
-  // Fully authenticated and onboarded
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="recording" options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="processing" options={{ headerShown: false, animation: 'fade' }} />
-      <Stack.Screen name="result" options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="premium" options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="add-vehicle" options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="+not-found" />
-    </Stack>
+    <SubscriptionEngineProvider userId={user?.id}>
+      {!user ? (
+        <Stack screenOptions={stackOptions}>
+          <Stack.Screen name="splash" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
+          <Stack.Screen name="plans" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        </Stack>
+      ) : profile && !profile.onboarding_completed ? (
+        <Stack screenOptions={stackOptions}>
+          <Stack.Screen name="payment" options={{ headerShown: false }} />
+          <Stack.Screen name="vehicle-setup" options={{ headerShown: false }} />
+        </Stack>
+      ) : (
+        <Stack screenOptions={stackOptions}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.fast }} />
+          <Stack.Screen name="recording" options={{ headerShown: false }} />
+          <Stack.Screen name="processing" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
+          <Stack.Screen name="result" options={{ headerShown: false }} />
+          <Stack.Screen name="premium" options={{ headerShown: false }} />
+          <Stack.Screen name="add-vehicle" options={{ headerShown: false }} />
+          <Stack.Screen name="vehicle-health" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      )}
+    </SubscriptionEngineProvider>
   );
 }
 

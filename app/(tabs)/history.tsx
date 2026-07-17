@@ -10,12 +10,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Clock, AlertTriangle, CheckCircle, AlertOctagon, ChevronRight, Filter, X, Search } from 'lucide-react-native';
+import { Clock, AlertTriangle, CheckCircle, AlertOctagon, ChevronRight, Filter, X } from 'lucide-react-native';
 import { AppBackground } from '@/components/AppBackground';
-import { GlassCard } from '@/components/GlassCard';
 import { FadeInView } from '@/components/FadeInView';
-import { MD3Colors, Colors, Spacing, Radii } from '@/lib/theme';
+import { SkeletonList } from '@/components/Skeleton';
+import { MD3Colors, Colors, Spacing, Radii, IconStroke } from '@/lib/theme';
 import { getDiagnostics, DiagnosticRecord } from '@/lib/analyzer';
+import { stripRecordingQualityMarker } from '@/lib/audio-quality';
 import { useI18n } from '@/lib/i18n';
 
 export default function HistoryScreen() {
@@ -73,7 +74,11 @@ export default function HistoryScreen() {
   }
 
   function getBgColor(result: string) {
-    const m: Record<string, string> = { normal_engine: 'rgba(0,219,231,0.08)', suspicious_noise: 'rgba(232,196,35,0.08)', anomaly_detected: 'rgba(255,180,171,0.05)' };
+    const m: Record<string, string> = {
+      normal_engine: Colors.successBg,
+      suspicious_noise: Colors.warningBg,
+      anomaly_detected: Colors.dangerBg,
+    };
     return m[result] ?? MD3Colors.surfaceContainer;
   }
 
@@ -116,7 +121,7 @@ export default function HistoryScreen() {
                 type: item.issue_type ?? '',
                 confidence: String(item.confidence),
                 severity: item.severity,
-                recommendation: item.recommendation ?? '',
+                recommendation: stripRecordingQualityMarker(item.recommendation ?? ''),
                 recordId: item.id,
               },
             })
@@ -151,6 +156,8 @@ export default function HistoryScreen() {
       </FadeInView>
     );
   }
+
+  const showInitialSkeleton = loading && records.length === 0;
 
   const filterOptions: { key: typeof filter; label: string }[] = [
     { key: 'all', label: t.history.filter.all },
@@ -198,18 +205,27 @@ export default function HistoryScreen() {
           </View>
         )}
 
+        {showInitialSkeleton ? (
+          <View style={styles.listContent}>
+            <SkeletonList count={5} />
+          </View>
+        ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews
           refreshControl={
             <RefreshControl refreshing={loading} onRefresh={fetchRecords} tintColor={Colors.primary} />
           }
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyContainer}>
-                <Clock size={48} color={Colors.textMuted} strokeWidth={1.5} />
+                <Clock size={48} color={Colors.textMuted} strokeWidth={IconStroke.thin} />
                 <Text style={styles.emptyTitle}>{t.history.noHistory}</Text>
                 <Text style={styles.emptySubtitle}>
                   {t.history.noHistorySubtitle}
@@ -227,6 +243,7 @@ export default function HistoryScreen() {
             ) : null
           }
         />
+        )}
       </View>
     </AppBackground>
   );

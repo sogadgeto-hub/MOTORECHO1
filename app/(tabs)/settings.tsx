@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Car, Plus, Gauge, ScanLine, Trash2, CheckCircle,
   Crown, Wrench, User, Users, Mic, Brain,
@@ -9,17 +10,25 @@ import { AppBackground } from '@/components/AppBackground';
 import { GlassCard } from '@/components/GlassCard';
 import { HealthScoreGauge } from '@/components/HealthScoreGauge';
 import { FadeInView } from '@/components/FadeInView';
-import { MD3Colors, Spacing, Radii } from '@/lib/theme';
-import { getVehicles, deleteVehicle, setPrimaryVehicle } from '@/lib/db';
-import { getDiagnosticsForVehicle, getHealthScore, getCommunityStats, CommunityStats } from '@/lib/analyzer';
-import { Vehicle as VehicleType } from '@/lib/db';
-import { DiagnosticRecord } from '@/lib/analyzer';
+import { MD3Colors, Spacing } from '@/lib/theme';
+import { fetchVehicles, deleteVehicle, setPrimaryVehicle, Vehicle as VehicleType } from '@/lib/db';
+import {
+  getDiagnosticsForVehicle,
+  getHealthScore,
+  getCommunityStats,
+  CommunityStats,
+  DiagnosticRecord,
+} from '@/lib/analyzer';
 import { useAuth } from '@/lib/auth';
+import { formatPlanLabel } from '@/lib/plan-access';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useI18n } from '@/lib/i18n';
+import { navigateToVehicleHealth } from '@/lib/navigation';
 
 export default function SettingsTabScreen() {
   const router = useRouter();
-  const { profile, planDetails } = useAuth();
+  const { profile } = useAuth();
+  const { plan, snapshot, loading: planLoading, isFreePlan } = useSubscriptionAccess(profile?.id);
   const { t } = useI18n();
   const [vehicles, setVehicles] = useState<VehicleType[]>([]);
   const [selected, setSelected] = useState<VehicleType | null>(null);
@@ -29,26 +38,30 @@ export default function SettingsTabScreen() {
 
   const healthScore = getHealthScore(records);
   const scanCount = records.length;
-  const isFreePlan = profile?.plan_type === 'free';
+  const maxAnalysesDisplay = snapshot.maxAnalyses === -1 ? '∞' : String(snapshot.maxAnalyses);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const all = await getVehicles();
+      const all = await fetchVehicles();
       setVehicles(all);
-      const primary = all.find(v => v.is_primary);
+      const primary = all.find((v) => v.is_primary) ?? all[0] ?? null;
       if (primary) {
         setSelected(primary);
         const diags = await getDiagnosticsForVehicle(primary.id);
         setRecords(diags);
-      } else if (all.length > 0) {
-        setSelected(all[0]);
-        const diags = await getDiagnosticsForVehicle(all[0].id);
-        setRecords(diags);
       } else {
+        setSelected(null);
         setRecords([]);
       }
-    } catch {}
+    } catch (error) {
+      if (__DEV__) {
+        console.log('[Garage] load vehicles failed', error);
+      }
+      setVehicles([]);
+      setSelected(null);
+      setRecords([]);
+    }
     setLoading(false);
   }, []);
 
@@ -56,6 +69,12 @@ export default function SettingsTabScreen() {
     load();
     getCommunityStats().then(setCommunityStats).catch(() => {});
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   async function selectVehicle(v: VehicleType) {
     await setPrimaryVehicle(v.id);
@@ -111,7 +130,7 @@ export default function SettingsTabScreen() {
                   <View>
                     <Text style={styles.planLabel}>{t.garage.currentPlan}</Text>
                     <Text style={[styles.planNameText, !isFreePlan && styles.planNamePremium]}>
-                      {profile?.plan_type?.charAt(0).toUpperCase()}{profile?.plan_type?.slice(1)}
+                      {planLoading ? '…' : formatPlanLabel(plan)}
                     </Text>
                   </View>
                 </View>
@@ -121,9 +140,9 @@ export default function SettingsTabScreen() {
                   </View>
                 )}
               </View>
-              {isFreePlan && planDetails && (
+              {isFreePlan && !planLoading && (
                 <View style={styles.planLimits}>
-                  <Text style={styles.planLimitText}>{planDetails.monthly_analyses}/3 {t.garage.analysesThisMonth}</Text>
+                  <Text style={styles.planLimitText}>{snapshot.monthlyAnalyses}/{maxAnalysesDisplay} {t.garage.analysesThisMonth}</Text>
                 </View>
               )}
             </GlassCard>
@@ -132,9 +151,15 @@ export default function SettingsTabScreen() {
 
         {selected && (
           <FadeInView delay={100} style={styles.heroSection}>
-            <HealthScoreGauge score={healthScore} size={160} strokeWidth={10} />
-            <Text style={styles.heroVehicle}>{selected.brand} {selected.model}</Text>
-            <Text style={styles.heroMeta}>{selected.year} · {selected.fuel_type} · {selected.engine_type}</Text>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => navigateToVehicleHealth(router, selected.id)}
+            >
+              <HealthScoreGauge score={healthScore} size={160} strokeWidth={10} label={`${healthScore} / 100`} />
+              <Text style={styles.heroVehicle}>{selected.brand} {selected.model}</Text>
+              <Text style={styles.heroMeta}>{selected.year} · {selected.fuel_type} · {selected.engine_type}</Text>
+              <Text style={styles.viewHealthLink}>{t.vehicleHealth.viewDashboard}</Text>
+            </TouchableOpacity>
           </FadeInView>
         )}
 
@@ -328,6 +353,13 @@ const styles = StyleSheet.create({
   heroSection: { alignItems: 'center', marginBottom: 24, marginTop: Spacing.lg },
   heroVehicle: { fontFamily: 'HankenGrotesk-Bold', fontSize: 22, color: MD3Colors.onSurface, marginTop: 16 },
   heroMeta: { fontFamily: 'HankenGrotesk-Regular', fontSize: 13, color: MD3Colors.onSurfaceVariant, marginTop: 2 },
+  viewHealthLink: {
+    fontFamily: 'HankenGrotesk-SemiBold',
+    fontSize: 14,
+    color: MD3Colors.primaryFixedDim,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+  },
   statsRow: { flexDirection: 'row', paddingHorizontal: Spacing.containerMobile, gap: 12, marginBottom: 24 },
   statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', padding: 16, alignItems: 'center' },
   statIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,219,231,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },

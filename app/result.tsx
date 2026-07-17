@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,25 +10,54 @@ import {
   ArrowLeft,
   RotateCcw,
   Clock,
-  ShieldCheck,
-  Gauge,
-  FileText,
-  Zap,
-  Award,
-  MessageSquarePlus,
   FlaskConical,
+  MessageSquarePlus,
+  Activity,
 } from 'lucide-react-native';
 import { AppBackground } from '@/components/AppBackground';
-import { GlassCard } from '@/components/GlassCard';
 import { DiagnosisFeedbackModal } from '@/components/DiagnosisFeedbackModal';
-import { MD3Colors, Colors, Spacing, Radii } from '@/lib/theme';
-import { getResultLabel, getIssueLabel, getSeverityColor } from '@/lib/analyzer';
+import { ReportFeedbackSheet } from '@/components/ReportFeedbackSheet';
+import { PremiumReportView } from '@/components/report/PremiumReportView';
+import { FreeReportView } from '@/components/report/FreeReportView';
+import { MD3Colors, Spacing, Radii, Colors } from '@/lib/theme';
+import { hapticSuccess } from '@/lib/haptics';
+import { getSeverityColor } from '@/lib/analyzer';
+import { useAuth } from '@/lib/auth';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useI18n } from '@/lib/i18n';
+import { navigateToVehicleHealth } from '@/lib/navigation';
+import {
+  buildDiagnosticResult,
+  clampConfidence,
+  resolveIssueFromAnalysis,
+  type FreeDiagnosticResult,
+  type GarageDiagnosticResult,
+  type PremiumDiagnosticResult,
+  type IssueCategory,
+  type UserPlan,
+} from '@/lib/diagnostic-engine';
+import {
+  buildDiagnosisExplanation,
+  buildExplainerInput,
+  type ExplainerLocale,
+} from '@/lib/diagnostic-explainer';
+
+const ENABLE_REPORT_DEBUG_SELECTOR = false;
+const DEBUG_PLAN_OPTIONS: UserPlan[] = ['free', 'premium', 'garage'];
 
 export default function ResultScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const [showFeedback, setShowFeedback] = useState(false);
+  const { user } = useAuth();
+  const {
+    subscription,
+    plan: enginePlan,
+    loading: planLoading,
+    getDefaultReportTier,
+  } = useSubscriptionAccess(user?.id);
+  const [showVoluntaryFeedback, setShowVoluntaryFeedback] = useState(false);
+  const [showExitFeedback, setShowExitFeedback] = useState(false);
+  const [devPreviewPlan, setDevPreviewPlan] = useState<UserPlan>('free');
   const params = useLocalSearchParams<{
     result: string;
     type: string;
@@ -36,164 +65,199 @@ export default function ResultScreen() {
     severity: string;
     recommendation: string;
     recordId: string;
+    isSimulated?: string;
+    fromAnalysis?: string;
+    vehicleId?: string;
   }>();
 
-  useEffect(() => {
-    if (params.recordId) {
-      const timer = setTimeout(() => setShowFeedback(true), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [params.recordId]);
+  const isSimulated = params.isSimulated === '1';
+  const fromAnalysis = params.fromAnalysis === '1';
 
-  const severityColor = getSeverityColor(params.severity);
-  const confidencePercent = Math.round(parseFloat(params.confidence) * 100);
+  useEffect(() => {
+    if (fromAnalysis) {
+      void hapticSuccess();
+    }
+  }, [fromAnalysis]);
+
+  const effectiveReportTier = planLoading ? 'free' : getDefaultReportTier();
+  const reportTier =
+    __DEV__ && ENABLE_REPORT_DEBUG_SELECTOR ? devPreviewPlan : effectiveReportTier;
+
+  const safeConfidence = useMemo(
+    () => clampConfidence(parseFloat(params.confidence) || 0),
+    [params.confidence]
+  );
+
+  const confidencePercent = Math.round(safeConfidence * 100);
+
+  const issue = useMemo(
+    () => resolveIssueFromAnalysis(params.result, params.type || null),
+    [params.result, params.type]
+  );
+
+  const accessResult = useMemo(
+    () => buildDiagnosticResult(issue, reportTier, safeConfidence),
+    [issue, reportTier, safeConfidence]
+  );
+
+  const freeAccess = reportTier === 'free' ? (accessResult as FreeDiagnosticResult) : null;
+  const premiumAccess =
+    reportTier === 'premium' ? (accessResult as PremiumDiagnosticResult) : null;
+  const garageAccess =
+    reportTier === 'garage' ? (accessResult as GarageDiagnosticResult) : null;
+
+  const isFree = reportTier === 'free';
+  const isGarage = reportTier === 'garage';
+  const isPaid = reportTier === 'premium' || isGarage;
+
   const isNormal = params.result === 'normal_engine';
   const isAnomaly = params.result === 'anomaly_detected';
+  const severityColor = getSeverityColor(params.severity);
 
-  function getSeverityIcon() {
-    if (isNormal) return <CheckCircle size={28} color={MD3Colors.primaryFixedDim} strokeWidth={2} />;
-    if (isAnomaly) return <AlertOctagon size={28} color={MD3Colors.error} strokeWidth={2} />;
-    return <AlertTriangle size={28} color={MD3Colors.tertiaryFixedDim} strokeWidth={2} />;
+  const explainerInput = useMemo(
+    () =>
+      buildExplainerInput(issue, premiumAccess ?? garageAccess, {
+        analysisResult: params.result,
+        confidence: safeConfidence,
+        isNormal,
+      }),
+    [issue, premiumAccess, garageAccess, params.result, safeConfidence, isNormal]
+  );
+
+  const diagnosisExplanation = useMemo(
+    () => buildDiagnosisExplanation(explainerInput, t.explainer as ExplainerLocale),
+    [explainerInput, t.explainer]
+  );
+
+  function categoryLabel(categorie: IssueCategory) {
+    return t.result.access.categories[categorie];
   }
 
-  function getSeverityBg() {
-    if (isNormal) return 'rgba(0,219,231,0.08)';
-    if (isAnomaly) return 'rgba(255,180,171,0.05)';
-    return 'rgba(232,196,35,0.08)';
+  function navigateHome() {
+    router.replace('/(tabs)');
   }
 
-  function getSeverityBorder() {
-    if (isNormal) return MD3Colors.primaryFixedDim;
-    if (isAnomaly) return MD3Colors.error;
-    return MD3Colors.tertiaryFixedDim;
+  function handleLeaveReport() {
+    if (fromAnalysis && params.recordId) {
+      setShowExitFeedback(true);
+      return;
+    }
+    navigateHome();
   }
 
-  function getSeverityGlow() {
-    if (isNormal) return 'rgba(0,219,231,0.15)';
-    if (isAnomaly) return 'rgba(255,180,171,0.15)';
-    return 'rgba(232,196,35,0.15)';
+  function handleExitFeedbackComplete() {
+    setShowExitFeedback(false);
+    navigateHome();
+  }
+
+  if (planLoading && !__DEV__) {
+    return (
+      <AppBackground>
+        <View style={styles.planLoadingContainer}>
+          <Text style={styles.planLoadingText}>{t.limits.checkingLimits}</Text>
+        </View>
+      </AppBackground>
+    );
   }
 
   return (
     <AppBackground>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.replace('/(tabs)')}
-          activeOpacity={0.7}
-        >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <TouchableOpacity style={styles.backButton} onPress={handleLeaveReport} activeOpacity={0.7}>
           <ArrowLeft size={24} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
         </TouchableOpacity>
 
         <FadeInView delay={50} style={styles.betaBanner}>
           <FlaskConical size={14} color={MD3Colors.tertiaryFixedDim} strokeWidth={2} />
-          <Text style={styles.betaText}>{t.result.betaBanner}</Text>
+          <Text style={styles.betaText}>
+            {isSimulated ? t.result.simulatedBanner : t.result.betaBanner}
+          </Text>
         </FadeInView>
 
+        {__DEV__ && ENABLE_REPORT_DEBUG_SELECTOR && (
+          <View style={styles.devPreviewBar}>
+            <Text style={styles.devPreviewLabel}>
+              DEV — reportTier (effectif : {enginePlan} / RC : {subscription.plan})
+            </Text>
+            <View style={styles.devPreviewOptions}>
+              {DEBUG_PLAN_OPTIONS.map((plan) => (
+                <TouchableOpacity
+                  key={plan}
+                  style={[
+                    styles.devPreviewOption,
+                    devPreviewPlan === plan && styles.devPreviewOptionActive,
+                  ]}
+                  onPress={() => setDevPreviewPlan(plan)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.devPreviewOptionText,
+                      devPreviewPlan === plan && styles.devPreviewOptionTextActive,
+                    ]}
+                  >
+                    {plan}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
         <FadeInView delay={100} style={styles.headerSection}>
-          <View style={[styles.statusBadge, { borderColor: getSeverityBorder(), backgroundColor: getSeverityBg() }]}>
-            {getSeverityIcon()}
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                borderColor: getStatusBorder(isNormal, isAnomaly),
+                backgroundColor: getStatusBg(isNormal, isAnomaly),
+              },
+            ]}
+          >
+            {getStatusIcon(isNormal, isAnomaly)}
             <Text style={[styles.statusBadgeText, { color: severityColor }]}>
-              {getResultLabel(params.result)}
+              {t.result.report.completed}
             </Text>
           </View>
           <Text style={styles.headerTitle}>{t.result.diagnosticReport}</Text>
           <Text style={styles.headerDate}>{t.result.generatedBy}</Text>
         </FadeInView>
 
-        <FadeInView delay={200} style={styles.scoreSection}>
-          <View style={[styles.scoreCircle, { borderColor: severityColor, shadowColor: getSeverityBorder() }]}>
-            <Text style={[styles.scoreValue, { color: severityColor }]}>{confidencePercent}%</Text>
-            <Text style={styles.scoreLabel}>{t.result.confidence}</Text>
-          </View>
-          <View style={styles.scoreInfo}>
-            <Text style={styles.scoreTitle}>{getResultLabel(params.result)}</Text>
-            <Text style={styles.scoreSubtitle}>
-              {isNormal ? t.result.healthy.description :
-               isAnomaly ? t.result.critical.description :
-               t.result.monitor.description}
-            </Text>
-          </View>
-        </FadeInView>
+        {isFree && freeAccess && (
+          <FreeReportView
+            data={freeAccess}
+            issue={issue}
+            copy={t.result.report}
+            accessCopy={t.result.access}
+            categoryLabel={categoryLabel(issue.categorie)}
+            explanation={diagnosisExplanation}
+            explainerSections={t.explainer.sections}
+            confidencePercent={confidencePercent}
+            isNormal={isNormal}
+            issueName={issue.nom}
+            onUpgrade={() => router.push('/premium')}
+            upgradeLabel={t.result.access.upgradeToPremium}
+            lockedTitle={t.result.access.lockedTitle}
+            lockedDescription={t.result.access.lockedDescription}
+          />
+        )}
 
-        <FadeInView delay={300} style={styles.detailsSection}>
-          <GlassCard>
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Zap size={18} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
-              </View>
-              <View style={styles.detailText}>
-                <Text style={styles.detailLabel}>{t.result.issueCategory}</Text>
-                <Text style={styles.detailValue}>
-                  {params.type ? getIssueLabel(params.type) : t.result.noIssueDetected}
-                </Text>
-              </View>
-            </View>
+        {isPaid && (premiumAccess || garageAccess) && (
+          <PremiumReportView
+            data={(premiumAccess ?? garageAccess)!}
+            issue={issue}
+            confidencePercent={confidencePercent}
+            isNormal={isNormal}
+            copy={t.result.report}
+            categoryLabel={categoryLabel((premiumAccess ?? garageAccess)!.categorie)}
+            explanation={diagnosisExplanation}
+            explainerSections={t.explainer.sections}
+            garageData={garageAccess}
+            workshopCopy={t.result.access}
+          />
+        )}
 
-            <View style={styles.divider} />
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Gauge size={18} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
-              </View>
-              <View style={styles.detailText}>
-                <Text style={styles.detailLabel}>{t.result.severity}</Text>
-                <View style={styles.severityRow}>
-                  <View style={[styles.severityDot, { backgroundColor: severityColor }]} />
-                  <Text style={[styles.detailValue, { color: severityColor }]}>
-                    {params.severity.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Award size={18} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
-              </View>
-              <View style={styles.detailText}>
-                <Text style={styles.detailLabel}>{t.result.confidenceScore}</Text>
-                <View style={styles.confidenceBar}>
-                  <View style={styles.confidenceTrack}>
-                    <View style={[styles.confidenceFill, { width: `${confidencePercent}%`, backgroundColor: severityColor }]} />
-                  </View>
-                  <Text style={styles.confidenceText}>{confidencePercent}%</Text>
-                </View>
-              </View>
-            </View>
-          </GlassCard>
-        </FadeInView>
-
-        <FadeInView delay={400} style={styles.recommendationSection}>
-          <View style={styles.sectionTitleRow}>
-            <ShieldCheck size={18} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
-            <Text style={styles.sectionTitle}>{t.result.recommendation}</Text>
-          </View>
-          <GlassCard>
-            <Text style={styles.recommendationText}>{params.recommendation}</Text>
-          </GlassCard>
-        </FadeInView>
-
-        <FadeInView delay={500} style={styles.possibleIssuesSection}>
-          <View style={styles.sectionTitleRow}>
-            <FileText size={18} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
-            <Text style={styles.sectionTitle}>{t.result.possibleIssues}</Text>
-          </View>
-          <View style={styles.issuesGrid}>
-            <IssueChip label={t.result.issues.turbo} active={params.type === 'turbo_issue'} />
-            <IssueChip label={t.result.issues.injector} active={params.type === 'injector_noise'} />
-            <IssueChip label={t.result.issues.timingChain} active={params.type === 'timing_chain_noise'} />
-            <IssueChip label={t.result.issues.engineKnock} active={params.type === 'engine_knocking'} />
-            <IssueChip label={t.result.issues.idle} active={params.type === 'idle_instability'} />
-          </View>
-        </FadeInView>
-
-        <FadeInView delay={600} style={styles.actions}>
+        <FadeInView delay={700} style={styles.actions}>
           <TouchableOpacity
             style={styles.newAnalysisButton}
             onPress={() => router.replace('/recording')}
@@ -212,12 +276,23 @@ export default function ResultScreen() {
 
           <TouchableOpacity
             style={styles.feedbackButton}
-            onPress={() => setShowFeedback(true)}
+            onPress={() => setShowVoluntaryFeedback(true)}
             activeOpacity={0.8}
           >
             <MessageSquarePlus size={16} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
-            <Text style={styles.feedbackButtonText}>{t.result.feedbackButton}</Text>
+            <Text style={styles.feedbackButtonText}>{t.result.helpMotorEcho}</Text>
           </TouchableOpacity>
+
+          {params.vehicleId && params.vehicleId.length > 0 ? (
+            <TouchableOpacity
+              style={styles.healthButton}
+              onPress={() => navigateToVehicleHealth(router, params.vehicleId!)}
+              activeOpacity={0.8}
+            >
+              <Activity size={16} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
+              <Text style={styles.healthButtonText}>{t.vehicleHealth.viewDashboard}</Text>
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={styles.historyButton}
@@ -232,25 +307,52 @@ export default function ResultScreen() {
         <View style={styles.spacer} />
       </ScrollView>
 
-      <DiagnosisFeedbackModal
-        visible={showFeedback}
+      <ReportFeedbackSheet
+        visible={showExitFeedback}
         recordId={params.recordId ?? ''}
-        onClose={() => setShowFeedback(false)}
+        onComplete={handleExitFeedbackComplete}
+        onSkip={handleExitFeedbackComplete}
+      />
+
+      <DiagnosisFeedbackModal
+        visible={showVoluntaryFeedback}
+        recordId={params.recordId ?? ''}
+        onClose={() => setShowVoluntaryFeedback(false)}
       />
     </AppBackground>
   );
 }
 
-function IssueChip({ label, active }: { label: string; active: boolean }) {
-  return (
-    <View style={[styles.issueChip, active && styles.issueChipActive]}>
-      <Text style={[styles.issueChipText, active && styles.issueChipTextActive]}>{label}</Text>
-    </View>
-  );
+function getStatusIcon(isNormal: boolean, isAnomaly: boolean) {
+  if (isNormal) {
+    return <CheckCircle size={28} color={MD3Colors.primaryFixedDim} strokeWidth={2} />;
+  }
+  if (isAnomaly) {
+    return <AlertOctagon size={28} color={MD3Colors.error} strokeWidth={2} />;
+  }
+  return <AlertTriangle size={28} color={MD3Colors.tertiaryFixedDim} strokeWidth={2} />;
+}
+
+function getStatusBorder(isNormal: boolean, isAnomaly: boolean) {
+  if (isNormal) return MD3Colors.primaryFixedDim;
+  if (isAnomaly) return MD3Colors.error;
+  return MD3Colors.tertiaryFixedDim;
+}
+
+function getStatusBg(isNormal: boolean, isAnomaly: boolean) {
+  if (isNormal) return Colors.successBg;
+  if (isAnomaly) return Colors.dangerBg;
+  return Colors.warningBg;
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingTop: 60, paddingBottom: 40 },
+  scrollContent: { paddingTop: 60, paddingBottom: 48 },
+  planLoadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  planLoadingText: {
+    fontFamily: 'HankenGrotesk-Regular',
+    fontSize: 16,
+    color: MD3Colors.onSurfaceVariant,
+  },
   backButton: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
@@ -269,16 +371,53 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(232,196,35,0.15)',
   },
   betaText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'HankenGrotesk-Regular',
     fontSize: 11,
     color: MD3Colors.tertiaryFixedDim,
     flex: 1,
     lineHeight: 16,
   },
+  devPreviewBar: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    backgroundColor: 'rgba(255, 100, 100, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 100, 100, 0.25)',
+    gap: Spacing.sm,
+  },
+  devPreviewLabel: {
+    fontFamily: 'HankenGrotesk-Medium',
+    fontSize: 11,
+    color: '#FF8A80',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  devPreviewOptions: { flexDirection: 'row', gap: Spacing.sm },
+  devPreviewOption: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+  },
+  devPreviewOptionActive: {
+    borderColor: '#FF8A80',
+    backgroundColor: 'rgba(255, 100, 100, 0.15)',
+  },
+  devPreviewOptionText: {
+    fontFamily: 'HankenGrotesk-Medium',
+    fontSize: 12,
+    color: MD3Colors.onSurfaceVariant,
+    textTransform: 'capitalize',
+  },
+  devPreviewOptionTextActive: { color: '#FF8A80' },
   headerSection: {
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -291,194 +430,28 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   statusBadgeText: {
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'HankenGrotesk-SemiBold',
     fontSize: 16,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   headerTitle: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'HankenGrotesk-Bold',
     fontSize: 28,
-    color: Colors.text,
+    color: MD3Colors.onSurface,
+    textAlign: 'center',
   },
   headerDate: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'HankenGrotesk-Regular',
     fontSize: 13,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  scoreSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
-    gap: Spacing.lg,
-  },
-  scoreCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.surface,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  scoreValue: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 32,
-  },
-  scoreLabel: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  scoreInfo: {
-    flex: 1,
-  },
-  scoreTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 18,
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  scoreSubtitle: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  detailsSection: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  detailIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailText: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 15,
-    color: Colors.text,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.xs,
-  },
-  severityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  severityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  confidenceBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  confidenceTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.surfaceElevated,
-    overflow: 'hidden',
-  },
-  confidenceFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  confidenceText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 13,
-    color: Colors.text,
-    minWidth: 36,
-  },
-  recommendationSection: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: Colors.text,
-  },
-  recommendationText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
-  possibleIssuesSection: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  issuesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  issueChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surfaceElevated,
-  },
-  issueChipActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
-  },
-  issueChipText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  issueChipTextActive: {
-    color: Colors.primary,
+    color: MD3Colors.onSurfaceVariant,
+    marginTop: 4,
   },
   actions: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.md,
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
   },
-  newAnalysisButton: {
-    borderRadius: Radii.md,
-    overflow: 'hidden',
-  },
+  newAnalysisButton: { borderRadius: Radii.md, overflow: 'hidden' },
   newAnalysisGradient: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -488,7 +461,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   newAnalysisText: {
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'HankenGrotesk-SemiBold',
     fontSize: 16,
     color: '#FFFFFF',
   },
@@ -500,11 +473,27 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
-    borderColor: MD3Colors.primaryFixedDim,
-    backgroundColor: 'rgba(0,219,231,0.05)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   feedbackButtonText: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'HankenGrotesk-Medium',
+    fontSize: 14,
+    color: MD3Colors.onSurfaceVariant,
+  },
+  healthButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,219,231,0.25)',
+    backgroundColor: 'rgba(0,219,231,0.06)',
+  },
+  healthButtonText: {
+    fontFamily: 'HankenGrotesk-Medium',
     fontSize: 14,
     color: MD3Colors.primaryFixedDim,
   },
@@ -516,9 +505,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   historyButtonText: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'HankenGrotesk-Medium',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: MD3Colors.onSurfaceVariant,
   },
   spacer: { height: 24 },
 });

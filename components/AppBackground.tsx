@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native';
-import { Colors, MD3Colors } from '@/lib/theme';
+import { MD3Colors } from '@/lib/theme';
 
 export function AppBackground({ children }: { children: React.ReactNode }) {
   return (

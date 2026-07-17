@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 export type Brand = {
   id: string;
@@ -36,7 +37,75 @@ export type Diagnostic = {
   created_at: string;
 };
 
-// Get all brands ordered alphabetically
+export type VehicleValidationCode =
+  | 'BRAND_REQUIRED'
+  | 'BRAND_MISSING'
+  | 'MODEL_REQUIRED'
+  | 'YEAR_REQUIRED'
+  | 'YEAR_INVALID'
+  | 'FUEL_REQUIRED'
+  | 'ENGINE_REQUIRED';
+
+export type VehicleDbErrorCode =
+  | 'NOT_AUTHENTICATED'
+  | 'SESSION_EXPIRED'
+  | 'BRAND_INVALID'
+  | 'SCHEMA_OUTDATED'
+  | 'CREATE_FAILED';
+
+const VALIDATION_MESSAGES_FR: Record<VehicleValidationCode, string> = {
+  BRAND_REQUIRED: 'Veuillez sélectionner une marque dans la liste',
+  BRAND_MISSING: 'Le nom de la marque est manquant',
+  MODEL_REQUIRED: 'Le modèle est obligatoire',
+  YEAR_REQUIRED: "L'année est obligatoire",
+  YEAR_INVALID: `L'année doit être entre 1900 et ${new Date().getFullYear() + 2}`,
+  FUEL_REQUIRED: 'Le type de carburant est obligatoire',
+  ENGINE_REQUIRED: 'Le type de moteur est obligatoire',
+};
+
+const DB_ERROR_MESSAGES_FR: Record<VehicleDbErrorCode, string> = {
+  NOT_AUTHENTICATED: 'Aucune session authentifiée — veuillez vous reconnecter',
+  SESSION_EXPIRED: 'Session expirée — veuillez vous reconnecter',
+  BRAND_INVALID: 'Marque invalide — veuillez la resélectionner dans la liste',
+  SCHEMA_OUTDATED: 'Configuration serveur incomplète (marques). Contactez le support',
+  CREATE_FAILED: "Échec de l'enregistrement du véhicule",
+};
+
+export function getVehicleValidationMessage(code: VehicleValidationCode): string {
+  return VALIDATION_MESSAGES_FR[code];
+}
+
+export function getVehicleDbErrorMessage(code: VehicleDbErrorCode): string {
+  return DB_ERROR_MESSAGES_FR[code];
+}
+
+export function mapVehicleDbError(error: PostgrestError | Error): string {
+  if (!(error && typeof error === 'object' && 'code' in error)) {
+    if (error.message.includes('Not authenticated') || error.message.includes('session authentifiée')) {
+      return DB_ERROR_MESSAGES_FR.NOT_AUTHENTICATED;
+    }
+    return `${DB_ERROR_MESSAGES_FR.CREATE_FAILED} : ${error.message}`;
+  }
+
+  const pg = error as PostgrestError;
+  const msg = pg.message ?? '';
+  const code = pg.code ?? '';
+
+  if (code === '42501' || msg.toLowerCase().includes('row-level security')) {
+    return DB_ERROR_MESSAGES_FR.SESSION_EXPIRED;
+  }
+  if (code === '23503' && msg.includes('brand_id')) {
+    return DB_ERROR_MESSAGES_FR.BRAND_INVALID;
+  }
+  if (code === '42703' && msg.includes('brand_id')) {
+    return DB_ERROR_MESSAGES_FR.SCHEMA_OUTDATED;
+  }
+
+  const detail = pg.details ? ` (${pg.details})` : '';
+  const hint = pg.hint ? ` — ${pg.hint}` : '';
+  return `${DB_ERROR_MESSAGES_FR.CREATE_FAILED} : ${msg}${detail}${hint}`;
+}
+
 export async function getBrands(): Promise<Brand[]> {
   const { data, error } = await supabase
     .from('brands')
@@ -47,7 +116,6 @@ export async function getBrands(): Promise<Brand[]> {
   return (data as Brand[]) ?? [];
 }
 
-// Get all vehicles for the current user
 export async function getVehicles(): Promise<Vehicle[]> {
   const { data, error } = await supabase
     .from('vehicles')
@@ -59,7 +127,41 @@ export async function getVehicles(): Promise<Vehicle[]> {
   return (data as Vehicle[]) ?? [];
 }
 
-// Get a specific vehicle
+/** Charge les véhicules avec logs DEV (count, ids, user_id, erreurs). */
+export async function fetchVehicles(): Promise<Vehicle[]> {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (__DEV__) {
+    console.log('[Vehicles] fetchVehicles — auth', {
+      userId: user?.id ?? null,
+      authError: authError?.message ?? null,
+    });
+  }
+
+  try {
+    const vehicles = await getVehicles();
+
+    if (__DEV__) {
+      console.log('[Vehicles] fetchVehicles — result', {
+        count: vehicles.length,
+        ids: vehicles.map((v) => v.id),
+        userIds: [...new Set(vehicles.map((v) => v.user_id))],
+        primaryIds: vehicles.filter((v) => v.is_primary).map((v) => v.id),
+      });
+    }
+
+    return vehicles;
+  } catch (error) {
+    if (__DEV__) {
+      console.log('[Vehicles] fetchVehicles — error', error);
+    }
+    throw error;
+  }
+}
+
 export async function getVehicle(id: string): Promise<Vehicle | null> {
   const { data, error } = await supabase
     .from('vehicles')
@@ -71,7 +173,6 @@ export async function getVehicle(id: string): Promise<Vehicle | null> {
   return data as Vehicle | null;
 }
 
-// Get primary vehicle for the current user
 export async function getPrimaryVehicle(): Promise<Vehicle | null> {
   const { data, error } = await supabase
     .from('vehicles')
@@ -80,39 +181,58 @@ export async function getPrimaryVehicle(): Promise<Vehicle | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data as Vehicle | null;
+  if (data) return data as Vehicle;
+
+  const { data: fallback, error: fallbackError } = await supabase
+    .from('vehicles')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (fallbackError) throw fallbackError;
+  return (fallback as Vehicle | null) ?? null;
 }
 
 export type VehiclePayload = Omit<Vehicle, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'is_primary'>;
 
-// Validate required vehicle fields before hitting the DB
-export function validateVehiclePayload(v: VehiclePayload): string | null {
-  if (!v.brand_id) return 'Please select a vehicle brand from the list';
-  if (!v.brand?.trim()) return 'Brand name is missing';
-  if (!v.model?.trim()) return 'Model is required';
-  if (!v.year || isNaN(v.year)) return 'Year is required';
-  if (v.year < 1900 || v.year > new Date().getFullYear() + 2) return `Year must be between 1900 and ${new Date().getFullYear() + 2}`;
-  if (!v.fuel_type?.trim()) return 'Fuel type is required';
-  if (!v.engine_type?.trim()) return 'Engine type is required';
+export function validateVehiclePayload(v: VehiclePayload): VehicleValidationCode | null {
+  if (!v.brand_id) return 'BRAND_REQUIRED';
+  if (!v.brand?.trim()) return 'BRAND_MISSING';
+  if (!v.model?.trim()) return 'MODEL_REQUIRED';
+  if (!v.year || isNaN(v.year)) return 'YEAR_REQUIRED';
+  if (v.year < 1900 || v.year > new Date().getFullYear() + 2) return 'YEAR_INVALID';
+  if (!v.fuel_type?.trim()) return 'FUEL_REQUIRED';
+  if (!v.engine_type?.trim()) return 'ENGINE_REQUIRED';
   return null;
 }
 
-// Create a new vehicle
 export async function createVehicle(vehicle: VehiclePayload): Promise<Vehicle> {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user?.id) throw new Error('Not authenticated — user_id is missing');
+  const userId = session?.user?.id;
+  if (!userId) {
+    throw new Error(DB_ERROR_MESSAGES_FR.NOT_AUTHENTICATED);
+  }
 
-  const validationError = validateVehiclePayload(vehicle);
-  if (validationError) throw new Error(validationError);
+  const validationCode = validateVehiclePayload(vehicle);
+  if (validationCode) {
+    throw new Error(getVehicleValidationMessage(validationCode));
+  }
 
-  const { data: existing } = await supabase
+  const { count, error: countError } = await supabase
     .from('vehicles')
-    .select('id')
-    .limit(1)
-    .maybeSingle();
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
 
-  const payload = { ...vehicle, is_primary: !existing };
-  console.log('[createVehicle] payload →', JSON.stringify(payload));
+  if (countError) {
+    throw new Error(mapVehicleDbError(countError));
+  }
+
+  const payload = {
+    ...vehicle,
+    user_id: userId,
+    is_primary: (count ?? 0) === 0,
+  };
 
   const { data, error } = await supabase
     .from('vehicles')
@@ -121,18 +241,12 @@ export async function createVehicle(vehicle: VehiclePayload): Promise<Vehicle> {
     .single();
 
   if (error) {
-    console.error('[createVehicle] DB error →', error);
-    // Surface the real Postgres/PostgREST message
-    const detail = error.details ? ` (${error.details})` : '';
-    const hint = error.hint ? ` Hint: ${error.hint}` : '';
-    throw new Error(`${error.message}${detail}${hint}`);
+    throw new Error(mapVehicleDbError(error));
   }
 
-  console.log('[createVehicle] success →', data?.id);
   return data as Vehicle;
 }
 
-// Update a vehicle
 export async function updateVehicle(id: string, updates: Partial<Omit<Vehicle, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<Vehicle> {
   const { data, error } = await supabase
     .from('vehicles')
@@ -145,7 +259,6 @@ export async function updateVehicle(id: string, updates: Partial<Omit<Vehicle, '
   return data as Vehicle;
 }
 
-// Delete a vehicle
 export async function deleteVehicle(id: string): Promise<void> {
   const { error } = await supabase
     .from('vehicles')
@@ -155,24 +268,36 @@ export async function deleteVehicle(id: string): Promise<void> {
   if (error) throw error;
 }
 
-// Set a vehicle as primary
 export async function setPrimaryVehicle(vehicleId: string): Promise<void> {
-  // First, unset all vehicles as primary
-  await supabase
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) {
+    throw new Error(DB_ERROR_MESSAGES_FR.NOT_AUTHENTICATED);
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: unsetError } = await supabase
     .from('vehicles')
-    .update({ is_primary: false })
+    .update({ is_primary: false, updated_at: now })
+    .eq('user_id', userId)
     .eq('is_primary', true);
 
-  // Then set the selected vehicle as primary
-  const { error } = await supabase
-    .from('vehicles')
-    .update({ is_primary: true })
-    .eq('id', vehicleId);
+  if (unsetError) {
+    throw new Error(mapVehicleDbError(unsetError));
+  }
 
-  if (error) throw error;
+  const { error: setError } = await supabase
+    .from('vehicles')
+    .update({ is_primary: true, updated_at: now })
+    .eq('id', vehicleId)
+    .eq('user_id', userId);
+
+  if (setError) {
+    throw new Error(mapVehicleDbError(setError));
+  }
 }
 
-// Get diagnostics for the current user
 export async function getDiagnostics(limit = 50): Promise<Diagnostic[]> {
   const { data, error } = await supabase
     .from('diagnostics')
@@ -184,7 +309,6 @@ export async function getDiagnostics(limit = 50): Promise<Diagnostic[]> {
   return (data as Diagnostic[]) ?? [];
 }
 
-// Get diagnostics for a specific vehicle
 export async function getVehicleDiagnostics(vehicleId: string, limit = 50): Promise<Diagnostic[]> {
   const { data, error } = await supabase
     .from('diagnostics')
@@ -197,11 +321,16 @@ export async function getVehicleDiagnostics(vehicleId: string, limit = 50): Prom
   return (data as Diagnostic[]) ?? [];
 }
 
-// Create a diagnostic record
 export async function createDiagnostic(diagnostic: Omit<Diagnostic, 'id' | 'user_id' | 'created_at'>): Promise<Diagnostic> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) {
+    throw new Error(DB_ERROR_MESSAGES_FR.NOT_AUTHENTICATED);
+  }
+
   const { data, error } = await supabase
     .from('diagnostics')
-    .insert(diagnostic)
+    .insert({ ...diagnostic, user_id: userId })
     .select()
     .single();
 
@@ -209,7 +338,6 @@ export async function createDiagnostic(diagnostic: Omit<Diagnostic, 'id' | 'user
   return data as Diagnostic;
 }
 
-// Get diagnostics count for current month
 export async function getMonthlyDiagnosticCount(): Promise<number> {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -224,11 +352,9 @@ export async function getMonthlyDiagnosticCount(): Promise<number> {
   return count ?? 0;
 }
 
-// Increment monthly analysis count in profile
 export async function incrementAnalysisCount(): Promise<void> {
   const { error } = await supabase.rpc('increment_analysis_count');
   if (error) {
-    // Function might not exist, that's okay - we track via diagnostics table
     console.error('Error incrementing analysis count:', error);
   }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Car,
   Mic,
@@ -17,18 +18,24 @@ import { AppBackground } from '@/components/AppBackground';
 import { GlassCard } from '@/components/GlassCard';
 import { HealthScoreGauge } from '@/components/HealthScoreGauge';
 import { FadeInView } from '@/components/FadeInView';
-import { MD3Colors, Colors, Spacing, Radii } from '@/lib/theme';
-import { getDiagnostics, getHealthScore, getStatusFromHealthScore, DiagnosticRecord, getPrimaryVehicle } from '@/lib/analyzer';
+import { SkeletonDashboard } from '@/components/Skeleton';
+import { MD3Colors, Spacing, Radii } from '@/lib/theme';
+import { getDiagnostics, getDiagnosticsForVehicle, getHealthScore, getStatusFromHealthScore, DiagnosticRecord } from '@/lib/analyzer';
+import { fetchVehicles, Vehicle } from '@/lib/db';
 import { useAuth } from '@/lib/auth';
+import { formatPlanLabel } from '@/lib/plan-access';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useI18n } from '@/lib/i18n';
-import { Vehicle } from '@/lib/db';
+import { stripRecordingQualityMarker } from '@/lib/audio-quality';
+import { navigateToVehicleHealth } from '@/lib/navigation';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, profile, planDetails, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const { plan, snapshot, loading: planLoading, isFreePlan } = useSubscriptionAccess(user?.id);
   const { t, language } = useI18n();
   const [records, setRecords] = useState<DiagnosticRecord[]>([]);
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
 
   const healthScore = getHealthScore(records);
@@ -39,10 +46,19 @@ export default function HomeScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [diagnostics, primaryVehicle] = await Promise.all([getDiagnostics(), getPrimaryVehicle()]);
-      setRecords(diagnostics);
-      setVehicle(primaryVehicle);
-    } catch {}
+      const allVehicles = await fetchVehicles();
+      setVehicles(allVehicles);
+      const primary = allVehicles.find((v) => v.is_primary) ?? allVehicles[0] ?? null;
+      if (primary) {
+        setRecords(await getDiagnosticsForVehicle(primary.id));
+      } else {
+        setRecords(await getDiagnostics());
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.log('[Garage] dashboard load failed', error);
+      }
+    }
     setLoading(false);
   }, []);
 
@@ -50,8 +66,18 @@ export default function HomeScreen() {
     load();
   }, []);
 
-  const isFreePlan = profile?.plan_type === 'free';
-  const remainingVehicles = planDetails ? (planDetails.max_vehicles === -1 ? -1 : Math.max(0, planDetails.max_vehicles - planDetails.vehicle_count)) : 0;
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  const remainingVehicles =
+    snapshot.maxVehicles === -1
+      ? -1
+      : Math.max(0, snapshot.maxVehicles - snapshot.vehicleCount);
+  const maxAnalysesDisplay = snapshot.maxAnalyses === -1 ? '∞' : String(snapshot.maxAnalyses);
+  const maxVehiclesDisplay = snapshot.maxVehicles === -1 ? '∞' : String(snapshot.maxVehicles);
 
   function getResultLabel(result: string) {
     const m: Record<string, string> = {
@@ -78,13 +104,19 @@ export default function HomeScreen() {
     return d.toLocaleDateString(language === 'fr' ? 'fr-FR' : language === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric' });
   }
 
+  const showInitialSkeleton = loading && records.length === 0 && vehicles.length === 0;
+
   return (
     <AppBackground>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={MD3Colors.primaryFixedDim} />}
+        refreshControl={<RefreshControl refreshing={loading && !showInitialSkeleton} onRefresh={load} tintColor={MD3Colors.primaryFixedDim} />}
         showsVerticalScrollIndicator={false}
       >
+        {showInitialSkeleton ? (
+          <SkeletonDashboard />
+        ) : (
+          <>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -106,7 +138,7 @@ export default function HomeScreen() {
               <TouchableOpacity style={styles.planBadge} onPress={() => router.push('/premium')} activeOpacity={0.7}>
                 <Crown size={12} color={isFreePlan ? MD3Colors.onSurfaceVariant : MD3Colors.primaryFixedDim} strokeWidth={2} />
                 <Text style={[styles.planText, !isFreePlan && styles.planTextPremium]}>
-                  {profile?.plan_type?.charAt(0).toUpperCase()}{profile?.plan_type?.slice(1)}
+                  {planLoading ? '…' : formatPlanLabel(plan)}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -118,23 +150,34 @@ export default function HomeScreen() {
 
         {/* Health Score Section */}
         <FadeInView delay={100} style={styles.heroSection}>
-          <GlassCard style={styles.heroCard}>
-            <View style={styles.heroContent}>
-              <HealthScoreGauge score={healthScore} size={180} strokeWidth={12} />
-              <View style={styles.statusRow}>
-                <View style={[styles.statusPill, { borderColor: status.color, backgroundColor: `${status.color}12` }]}>
-                  {status.status === 'Healthy' ? <CheckCircle size={14} color={status.color} strokeWidth={2} /> :
-                   status.status === 'Monitor' ? <AlertTriangle size={14} color={status.color} strokeWidth={2} /> :
-                   <AlertOctagon size={14} color={status.color} strokeWidth={2} />}
-                  <Text style={[styles.statusText, { color: status.color }]}>{getResultLabel(status.status.toLowerCase().replace(' ', '_') === 'healthy' ? 'normal_engine' : status.status === 'Monitor' ? 'suspicious_noise' : 'anomaly_detected')}</Text>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              const primary = vehicles.find((v) => v.is_primary) ?? vehicles[0];
+              if (primary) {
+                navigateToVehicleHealth(router, primary.id);
+              }
+            }}
+            disabled={vehicles.length === 0}
+          >
+            <GlassCard style={styles.heroCard}>
+              <View style={styles.heroContent}>
+                <HealthScoreGauge score={healthScore} size={180} strokeWidth={12} label={`${healthScore} / 100`} />
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusPill, { borderColor: status.color, backgroundColor: `${status.color}12` }]}>
+                    {status.status === 'Healthy' ? <CheckCircle size={14} color={status.color} strokeWidth={2} /> :
+                     status.status === 'Monitor' ? <AlertTriangle size={14} color={status.color} strokeWidth={2} /> :
+                     <AlertOctagon size={14} color={status.color} strokeWidth={2} />}
+                    <Text style={[styles.statusText, { color: status.color }]}>{getResultLabel(status.status.toLowerCase().replace(' ', '_') === 'healthy' ? 'normal_engine' : status.status === 'Monitor' ? 'suspicious_noise' : 'anomaly_detected')}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          </GlassCard>
+            </GlassCard>
+          </TouchableOpacity>
         </FadeInView>
 
         {/* Usage Stats for Free Users */}
-        {isFreePlan && planDetails && (
+        {isFreePlan && !planLoading && (
           <FadeInView delay={150} style={styles.usageCard}>
             <GlassCard>
               <View style={styles.usageContent}>
@@ -142,16 +185,20 @@ export default function HomeScreen() {
                   <Text style={styles.usageLabel}>{t.dashboard.analysesThisMonth}</Text>
                   <View style={styles.usageBar}>
                     <View style={styles.usageTrack}>
-                      <View style={[styles.usageFill, { flex: planDetails.monthly_analyses / 3 }]} />
+                      <View style={[styles.usageFill, {
+                        flex: snapshot.maxAnalyses > 0
+                          ? snapshot.monthlyAnalyses / snapshot.maxAnalyses
+                          : 0,
+                      }]} />
                     </View>
-                    <Text style={styles.usageText}>{planDetails.monthly_analyses}/3</Text>
+                    <Text style={styles.usageText}>{snapshot.monthlyAnalyses}/{maxAnalysesDisplay}</Text>
                   </View>
                 </View>
                 <View style={styles.usageDivider} />
                 <View style={styles.usageStat}>
                   <Text style={styles.usageLabel}>{t.dashboard.vehicles}</Text>
                   <View style={styles.usageBar}>
-                    <Text style={styles.usageText}>{planDetails.vehicle_count}/1</Text>
+                    <Text style={styles.usageText}>{snapshot.vehicleCount}/{maxVehiclesDisplay}</Text>
                     {remainingVehicles === 0 && (
                       <TouchableOpacity style={styles.upgradeChip} onPress={() => router.push('/premium')} activeOpacity={0.7}>
                         <Crown size={12} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
@@ -199,33 +246,43 @@ export default function HomeScreen() {
         </FadeInView>
 
         {/* Vehicle Card */}
-        {vehicle && (
+        {vehicles.length > 0 && (
           <FadeInView delay={400}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{t.dashboard.vehicle}</Text>
-              <TouchableOpacity onPress={() => router.push('/add-vehicle')} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/settings')} activeOpacity={0.7}>
                 <Text style={styles.seeAll}>{t.dashboard.manage}</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.vehicleCard} onPress={() => router.push('/add-vehicle')} activeOpacity={0.7}>
-              <GlassCard>
-                <View style={styles.vehicleRow}>
-                  <View style={styles.vehicleIcon}>
-                    <Car size={28} color={MD3Colors.primaryFixedDim} strokeWidth={1.5} />
+            {vehicles.map((v) => (
+              <TouchableOpacity
+                key={v.id}
+                style={styles.vehicleCard}
+                onPress={() => navigateToVehicleHealth(router, v.id)}
+                activeOpacity={0.7}
+              >
+                <GlassCard>
+                  <View style={styles.vehicleRow}>
+                    <View style={styles.vehicleIcon}>
+                      <Car size={28} color={MD3Colors.primaryFixedDim} strokeWidth={1.5} />
+                    </View>
+                    <View style={styles.vehicleInfo}>
+                      <Text style={styles.vehicleBrand}>{v.brand} {v.model}</Text>
+                      <Text style={styles.vehicleMeta}>
+                        {v.year} · {v.fuel_type} · {v.engine_type}
+                        {v.is_primary ? ' · ★' : ''}
+                      </Text>
+                    </View>
+                    <ChevronRight size={20} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
                   </View>
-                  <View style={styles.vehicleInfo}>
-                    <Text style={styles.vehicleBrand}>{vehicle.brand} {vehicle.model}</Text>
-                    <Text style={styles.vehicleMeta}>{vehicle.year} · {vehicle.fuel_type} · {vehicle.engine_type}</Text>
-                  </View>
-                  <ChevronRight size={20} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
-                </View>
-              </GlassCard>
-            </TouchableOpacity>
+                </GlassCard>
+              </TouchableOpacity>
+            ))}
           </FadeInView>
         )}
 
         {/* Add Vehicle CTA if no vehicle */}
-        {!vehicle && (
+        {vehicles.length === 0 && (
           <FadeInView delay={400}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{t.dashboard.vehicle}</Text>
@@ -265,7 +322,7 @@ export default function HomeScreen() {
                   style={styles.historyCard}
                   onPress={() => router.push({
                     pathname: '/result',
-                    params: { result: r.result, type: r.issue_type ?? '', confidence: String(r.confidence), severity: r.severity, recommendation: r.recommendation ?? '', recordId: r.id },
+                    params: { result: r.result, type: r.issue_type ?? '', confidence: String(r.confidence), severity: r.severity, recommendation: stripRecordingQualityMarker(r.recommendation ?? ''), recordId: r.id },
                   })}
                   activeOpacity={0.7}
                 >
@@ -313,6 +370,8 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.spacer} />
+          </>
+        )}
       </ScrollView>
     </AppBackground>
   );

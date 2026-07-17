@@ -1,17 +1,24 @@
 import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { MD3Colors } from '@/lib/theme';
+import { Card, Shadows } from '@/lib/theme';
 
 interface GlassCardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   intensity?: number;
   border?: boolean;
+  padded?: boolean;
 }
 
-export function GlassCard({ children, style, intensity = 24, border = true }: GlassCardProps) {
+export function GlassCard({
+  children,
+  style,
+  intensity = 24,
+  border = true,
+  padded = false,
+}: GlassCardProps) {
   return (
-    <View style={[styles.card, style]}>
+    <View style={[styles.card, border && styles.bordered, padded && styles.padded, style]}>
       <BlurView intensity={intensity} style={styles.blur} tint="dark" />
       <View style={styles.content}>{children}</View>
     </View>
@@ -20,17 +27,21 @@ export function GlassCard({ children, style, intensity = 24, border = true }: Gl
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: Card.borderRadius,
+    backgroundColor: Card.backgroundColor,
     overflow: 'hidden',
-    // Inner shadow simulated via top/left border
-    // Note: box-shadow inset not directly available in RN
+    ...Shadows.card,
+  },
+  bordered: {
+    borderWidth: Card.borderWidth,
+    borderColor: Card.borderColor,
+  },
+  padded: {
+    padding: Card.padding,
   },
   blur: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 12,
+    borderRadius: Card.borderRadius,
   },
   content: {
     zIndex: 1,

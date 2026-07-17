@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FadeInView } from '@/components/FadeInView';
@@ -7,17 +7,19 @@ import { BrandPicker } from '@/components/BrandPicker';
 import { ArrowLeft, Car, Fuel, Calendar, Gauge } from 'lucide-react-native';
 import { AppBackground } from '@/components/AppBackground';
 import { MD3Colors, Colors, Spacing, Radii } from '@/lib/theme';
-import { createVehicle, validateVehiclePayload } from '@/lib/db';
+import { createVehicle, getVehicleValidationMessage, validateVehiclePayload } from '@/lib/db';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { resolvePlanLimitMessage } from '@/lib/plan-access';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { UpgradeModal } from '@/components/UpgradeModal';
-import { TextInput } from 'react-native';
 
 const FUEL_OPTIONS = ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'Plugin Hybrid'];
 
 export default function AddVehicleScreen() {
   const router = useRouter();
-  const { checkLimit, user } = useAuth();
+  const { user } = useAuth();
+  const { plan, verifyAddVehicle, refreshUsage } = useSubscriptionAccess(user?.id);
   const { t } = useI18n();
   const [brand, setBrand] = useState('');
   const [brandId, setBrandId] = useState<string | null>(null);
@@ -30,24 +32,8 @@ export default function AddVehicleScreen() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState('');
   const [upgradeTarget, setUpgradeTarget] = useState<'premium' | 'garage'>('premium');
-  const [limitChecked, setLimitChecked] = useState(false);
 
   const canSave = !!brandId && model.trim().length > 0 && year.trim().length === 4 && engineType.trim().length > 0;
-
-  useEffect(() => {
-    async function checkVehicleLimit() {
-      const result = await checkLimit('add_vehicle');
-      if (!result.allowed) {
-        setUpgradeTarget((result.upgrade_to as 'premium' | 'garage') ?? 'premium');
-        setUpgradeReason(result.reason ?? t.limits.vehicleLimitReached);
-        setShowUpgradeModal(true);
-      }
-      setLimitChecked(true);
-    }
-    if (user) {
-      checkVehicleLimit();
-    }
-  }, [user]);
 
   async function handleSave() {
     const payload = {
@@ -61,36 +47,33 @@ export default function AddVehicleScreen() {
     };
 
     // Client-side validation before touching the DB
-    const validationError = validateVehiclePayload(payload);
-    if (validationError) {
-      setError(validationError);
+    const validationCode = validateVehiclePayload(payload);
+    if (validationCode) {
+      setError(getVehicleValidationMessage(validationCode));
       return;
     }
 
     setError(null);
     setSaving(true);
-    console.log('[add-vehicle] submitting →', JSON.stringify(payload));
 
     try {
+      const limit = await verifyAddVehicle();
+      if (!limit.allowed) {
+        setUpgradeTarget(limit.upgradeTo === 'garage' ? 'garage' : 'premium');
+        setUpgradeReason(resolvePlanLimitMessage('add_vehicle', limit.upgradeTo, t.limits));
+        setShowUpgradeModal(true);
+        return;
+      }
+
       await createVehicle(payload);
+      await refreshUsage('after_vehicle');
       router.back();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error('[add-vehicle] error →', msg);
-      setError(`Vehicle creation failed: ${msg}`);
+      setError(msg);
     } finally {
       setSaving(false);
     }
-  }
-
-  if (!limitChecked) {
-    return (
-      <AppBackground>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>{t.limits.checkingLimits}</Text>
-        </View>
-      </AppBackground>
-    );
   }
 
   return (
@@ -221,7 +204,7 @@ export default function AddVehicleScreen() {
       <UpgradeModal
         visible={showUpgradeModal}
         onClose={() => router.back()}
-        currentPlan="free"
+        currentPlan={plan}
         upgradeTo={upgradeTarget}
         reason={upgradeReason}
         onUpgrade={() => {

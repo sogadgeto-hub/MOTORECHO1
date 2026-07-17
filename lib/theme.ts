@@ -86,12 +86,33 @@ export const Colors = {
   warningBg: 'rgba(232,196,35,0.08)',
   warningGlow: 'rgba(232,196,35,0.15)',
   danger: MD3Colors.error,
+  dangerDark: '#C62828',
   dangerBg: 'rgba(255,180,171,0.05)',
   dangerGlow: 'rgba(255,180,171,0.15)',
+  dangerSoft: '#FF8A80',
   recording: MD3Colors.error,
+  info: MD3Colors.secondary,
+  infoBg: 'rgba(175,198,255,0.08)',
+  infoGlow: 'rgba(175,198,255,0.15)',
+  onPrimary: '#FFFFFF',
+  overlay: 'rgba(0,0,0,0.55)',
   purple: MD3Colors.tertiaryFixed,
   purpleBg: 'rgba(254,216,58,0.08)',
 };
+
+/** Official semantic palette — use instead of hardcoded hex values. */
+export const Palette = {
+  primary: Colors.primary,
+  primaryDark: Colors.primaryDark,
+  secondary: Colors.secondary,
+  success: Colors.success,
+  warning: Colors.warning,
+  danger: Colors.danger,
+  info: Colors.info,
+  onPrimary: Colors.onPrimary,
+  onSurface: Colors.text,
+  onSurfaceMuted: Colors.textMuted,
+} as const;
 
 export const Spacing = {
   unit: 8,
@@ -118,6 +139,44 @@ export const Radii = {
   xl: 20,
   full: 9999,
 };
+
+/** Transition durations (ms) — keep animations between 200–300 ms. */
+export const Animation = {
+  fast: 200,
+  normal: 250,
+  slow: 300,
+} as const;
+
+/** Lucide icon standards across the app. */
+export const IconSize = {
+  xs: 14,
+  sm: 16,
+  md: 20,
+  lg: 24,
+  xl: 32,
+  xxl: 40,
+} as const;
+
+export const IconStroke = {
+  thin: 1.5,
+  default: 2,
+  bold: 2.5,
+} as const;
+
+/** Minimum touch target (accessibility). */
+export const TouchTarget = {
+  min: 44,
+} as const;
+
+/** Unified card tokens — all cards should use these. */
+export const Card = {
+  borderRadius: Radii.md,
+  padding: Spacing.lg,
+  gap: Spacing.md,
+  backgroundColor: Colors.surfaceCard,
+  borderColor: Colors.border,
+  borderWidth: 1,
+} as const;
 
 export const Typography = {
   display: {
@@ -202,6 +261,26 @@ export const Typography = {
     fontSize: 15,
     lineHeight: 20,
     color: Colors.text,
+  },
+  /** Semantic aliases for UI hierarchy */
+  title: {
+    fontFamily: 'HankenGrotesk-SemiBold',
+    fontSize: 24,
+    lineHeight: 32,
+    color: Colors.text,
+  },
+  subtitle: {
+    fontFamily: 'HankenGrotesk-Regular',
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.textSecondary,
+  },
+  legend: {
+    fontFamily: 'HankenGrotesk-Medium',
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
   },
   price: {
     fontFamily: 'HankenGrotesk-Bold',

@@ -9,7 +9,7 @@ import { MD3Colors, Spacing, Radii } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
-import { validateVehiclePayload } from '@/lib/db';
+import { createVehicle, getVehicleValidationMessage, validateVehiclePayload } from '@/lib/db';
 
 const ENGINE_TYPES = ['1.0L Turbo', '1.2L', '1.4L Turbo', '1.5L', '1.6L', '2.0L', '2.0L TFSI', '2.5L', '3.0L V6', '3.0L Diesel', 'Inline-4', 'Inline-6', 'V6', 'V8', 'Electric Motor', 'Diesel Turbo'];
 
@@ -50,36 +50,22 @@ export default function VehicleSetupScreen() {
     };
 
     // Client-side validation before touching the DB
-    const validationError = validateVehiclePayload(payload);
-    if (validationError) {
-      setError(validationError);
+    const validationCode = validateVehiclePayload(payload);
+    if (validationCode) {
+      setError(getVehicleValidationMessage(validationCode));
       return;
     }
 
     if (!user) {
-      setError('No authenticated session — please log in again.');
+      setError(t.vehicleSetup.notAuthenticated);
       return;
     }
 
     setLoading(true);
     setError(null);
-    console.log('[vehicle-setup] submitting →', JSON.stringify(payload));
 
     try {
-      const { error: vehicleError } = await supabase.from('vehicles').insert({
-        user_id: user.id,
-        ...payload,
-        is_primary: true,
-      });
-
-      if (vehicleError) {
-        const detail = vehicleError.details ? ` (${vehicleError.details})` : '';
-        const hint = vehicleError.hint ? ` Hint: ${vehicleError.hint}` : '';
-        const msg = `Vehicle creation failed: ${vehicleError.message}${detail}${hint}`;
-        console.error('[vehicle-setup] DB error →', vehicleError);
-        setError(msg);
-        return;
-      }
+      await createVehicle(payload);
 
       const { error: profileError } = await supabase
         .from('profiles')
@@ -88,15 +74,13 @@ export default function VehicleSetupScreen() {
 
       if (profileError) {
         console.error('[vehicle-setup] profile update error →', profileError);
-        // Non-fatal: vehicle was saved — still proceed
       }
 
       await refreshProfile();
       router.replace('/(tabs)');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[vehicle-setup] unexpected error →', msg);
-      setError(`Vehicle creation failed: ${msg}`);
+      setError(msg);
     } finally {
       setLoading(false);
     }
