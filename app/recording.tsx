@@ -41,6 +41,8 @@ import {
   type MeterSample,
   type RecordingQuality,
 } from '@/lib/audio-quality';
+import { logBetaEvent } from '@/lib/beta-logger';
+import { updateBetaSessionSnapshot } from '@/lib/beta-session-snapshot';
 
 type RecordingPhase = 'guide' | 'preflight' | 'idle' | 'recording' | 'preview';
 
@@ -186,6 +188,8 @@ export default function RecordingScreen() {
     setElapsed(0);
     setPhase('idle');
     setError(t.recording.interrupted);
+    logBetaEvent('audio_interruption', 'Recording stopped due to app backgrounding', 'INTERRUPTED');
+    updateBetaSessionSnapshot({ recordingPhase: 'idle' });
   }, [cleanupMetering, cleanupTimer, t.recording.interrupted]);
 
   useFocusEffect(
@@ -228,6 +232,11 @@ export default function RecordingScreen() {
       if (!result.micGranted) {
         setMicBlocked(result.micBlocked);
         setError(result.micBlocked ? t.recording.permissionBlockedBody : t.recording.permissionRequired);
+        logBetaEvent(
+          'microphone_permission',
+          result.micBlocked ? 'Microphone permission blocked' : 'Microphone permission denied',
+          result.micBlocked ? 'MIC_BLOCKED' : 'MIC_DENIED'
+        );
         setPhase('guide');
         return;
       }
@@ -257,8 +266,10 @@ export default function RecordingScreen() {
     setMicBlocked(requested === 'blocked');
     if (requested === 'blocked') {
       setError(t.recording.permissionBlockedBody);
+      logBetaEvent('microphone_permission', 'Microphone permission blocked', 'MIC_BLOCKED');
     } else {
       setError(t.recording.permissionRequired);
+      logBetaEvent('microphone_permission', 'Microphone permission denied', 'MIC_DENIED');
     }
     return false;
   }
@@ -333,6 +344,7 @@ export default function RecordingScreen() {
 
       recordingRef.current = rec;
       setPhase('recording');
+      updateBetaSessionSnapshot({ recordingPhase: 'recording', durationMs: 0, qualityScore: null });
       setElapsed(0);
       startMeteringPoll(rec);
 
@@ -349,8 +361,10 @@ export default function RecordingScreen() {
 
       busyRef.current = false;
       setIsBusy(false);
+      logBetaEvent('recording_start', 'Recording started', 'REC_START');
     } catch {
       setError(t.recording.failedToStart);
+      logBetaEvent('recording_start', 'Failed to start recording', 'REC_START_FAILED');
       await resetRecordingState();
     }
   }
@@ -395,14 +409,21 @@ export default function RecordingScreen() {
       });
 
       setRecordingQuality(quality);
+      updateBetaSessionSnapshot({
+        recordingPhase: 'preview',
+        durationMs: Math.min(durationMs, MAX_RECORDING_DURATION_MS),
+        qualityScore: quality.qualityScore,
+      });
       setLiveQuality(analyseLiveQuality(meterSamplesRef.current));
       setPreviewUri(persisted.uri);
       setPreviewDurationMs(Math.min(durationMs, MAX_RECORDING_DURATION_MS));
       setElapsed(Math.min(durationMs, MAX_RECORDING_DURATION_MS));
       setPhase('preview');
+      logBetaEvent('recording_stop', 'Recording stopped and preview ready', 'REC_STOP');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t.recording.processingFailed;
       setError(msg);
+      logBetaEvent('recording_stop', msg, 'REC_STOP_FAILED');
       setPhase('idle');
     } finally {
       busyRef.current = false;

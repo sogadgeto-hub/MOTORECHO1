@@ -68,10 +68,12 @@ export default function ResultScreen() {
     isSimulated?: string;
     fromAnalysis?: string;
     vehicleId?: string;
+    saveFailed?: string;
   }>();
 
   const isSimulated = params.isSimulated === '1';
   const fromAnalysis = params.fromAnalysis === '1';
+  const saveFailed = params.saveFailed === '1';
 
   useEffect(() => {
     if (fromAnalysis) {
@@ -175,6 +177,13 @@ export default function ResultScreen() {
             {isSimulated ? t.result.simulatedBanner : t.result.betaBanner}
           </Text>
         </FadeInView>
+
+        {saveFailed ? (
+          <FadeInView delay={80} style={styles.saveFailedBanner}>
+            <AlertTriangle size={14} color={Colors.warning} strokeWidth={2} />
+            <Text style={styles.saveFailedText}>{t.result.saveFailedBanner}</Text>
+          </FadeInView>
+        ) : null}
 
         {__DEV__ && ENABLE_REPORT_DEBUG_SELECTOR && (
           <View style={styles.devPreviewBar}>
@@ -376,6 +385,26 @@ const styles = StyleSheet.create({
     fontFamily: 'HankenGrotesk-Regular',
     fontSize: 11,
     color: MD3Colors.tertiaryFixedDim,
+    flex: 1,
+    lineHeight: 16,
+  },
+  saveFailedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: Radii.md,
+    backgroundColor: Colors.warningBg,
+    borderWidth: 1,
+    borderColor: Colors.warningGlow,
+  },
+  saveFailedText: {
+    fontFamily: 'HankenGrotesk-Regular',
+    fontSize: 11,
+    color: Colors.warning,
     flex: 1,
     lineHeight: 16,
   },

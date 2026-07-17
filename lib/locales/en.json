@@ -349,6 +349,7 @@
     "helpMotorEcho": "Help MotorEcho",
     "betaBanner": "Beta — MotorEcho AI is improving thanks to community contributions",
     "simulatedBanner": "Simulated beta result — audio is saved, advanced AI analysis coming soon",
+    "saveFailedBanner": "Report available locally — cloud save failed. History may not include this analysis.",
     "healthy": {
       "title": "Healthy",
       "description": "Engine sounds healthy and within normal acoustic parameters."

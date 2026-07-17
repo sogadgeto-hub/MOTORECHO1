@@ -349,6 +349,7 @@
     "helpMotorEcho": "Ayudar a MotorEcho",
     "betaBanner": "Beta — La IA MotorEcho mejora gracias a las contribuciones de la comunidad",
     "simulatedBanner": "Resultado beta simulado — el audio se guarda, el análisis IA avanzado llegará pronto",
+    "saveFailedBanner": "Informe disponible localmente — falló el guardado en la nube. El historial puede no incluir este análisis.",
     "healthy": {
       "title": "Saludable",
       "description": "El motor suena saludable y dentro de los parámetros acústicos normales."

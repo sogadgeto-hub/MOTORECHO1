@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CheckCircle, Cpu } from 'lucide-react-native';
@@ -11,6 +11,8 @@ import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { hapticLight, hapticSuccess } from '@/lib/haptics';
+import { logBetaEvent } from '@/lib/beta-logger';
+import { updateBetaSessionSnapshot } from '@/lib/beta-session-snapshot';
 
 export default function ProcessingScreen() {
   const router = useRouter();
@@ -31,8 +33,8 @@ export default function ProcessingScreen() {
   const [progressStep, setProgressStep] = useState(0);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const completeFadeAnim = useRef(new Animated.Value(0)).current;
-  const hasStarted = useRef(false);
   const analysisRunning = useRef(false);
+  const mountedRef = useRef(true);
 
   const analysisTexts = [
     t.processing.messages['0'],
@@ -40,6 +42,15 @@ export default function ProcessingScreen() {
     t.processing.messages['2'],
     t.processing.messages['3'],
   ];
+
+  useEffect(() => {
+    mountedRef.current = true;
+    updateBetaSessionSnapshot({ recordingPhase: 'processing' });
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const spin = Animated.loop(
@@ -58,19 +69,12 @@ export default function ProcessingScreen() {
       setTextIndex((prev) => (prev + 1) % analysisTexts.length);
     }, 2500);
 
-    const fadeIn = Animated.timing(fadeAnim, { toValue: 1, duration: Animation.normal, useNativeDriver: true });
-    fadeIn.start();
-
+    Animated.timing(fadeAnim, { toValue: 1, duration: Animation.normal, useNativeDriver: true }).start();
     void hapticLight();
 
     const progressInterval = setInterval(() => {
       setProgressStep((prev) => Math.min(prev + 1, 3));
     }, 2200);
-
-    if (!hasStarted.current) {
-      hasStarted.current = true;
-      runAnalysis();
-    }
 
     return () => {
       spin.stop();
@@ -78,7 +82,7 @@ export default function ProcessingScreen() {
       clearInterval(textInterval);
       clearInterval(progressInterval);
     };
-  }, []);
+  }, [analysisTexts.length, fadeAnim, pulseAnim, spinAnim]);
 
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -88,63 +92,13 @@ export default function ProcessingScreen() {
     }).start();
   }, [progressStep, progressAnim]);
 
-  async function runAnalysis() {
-    if (analysisRunning.current) return;
-    analysisRunning.current = true;
-
-    try {
-      if (!user) {
-        throw new Error(t.processing.notAuthenticated);
-      }
-
-      const resolvedUri = await resolveAudioUriForProcessing(audioSessionId, audioUri ?? null);
-
-      const fileInfo = await FileSystem.getInfoAsync(resolvedUri);
-      const fileSize = 'size' in fileInfo && typeof fileInfo.size === 'number' ? fileInfo.size : 0;
-
-      if (!fileInfo.exists || fileSize <= 0) {
-        throw new Error(t.processing.missingAudio);
-      }
-
-      const session = audioSessionId ? getPendingAudioSession(audioSessionId) : null;
-      const parsedDuration = session?.durationMs ?? parseInt(durationMs ?? '0', 10);
-
-      const vehicle = await getPrimaryVehicle();
-      const vehicleInfo = vehicle
-        ? {
-            brand: vehicle.brand,
-            model: vehicle.model,
-            year: vehicle.year,
-            fuel_type: vehicle.fuel_type,
-          }
-        : null;
-
-      const { record, analysis } = await processAudioDiagnostic(
-        resolvedUri,
-        parsedDuration,
-        user.id,
-        vehicle?.id ?? null,
-        vehicleInfo,
-        session?.recordingQuality ?? null
-      );
-
-      if (audioSessionId) {
-        removePendingAudioSession(audioSessionId);
-      }
-
-      await refreshUsage('after_analysis');
-
-      setPhase('complete');
-      setProgressStep(3);
-      void hapticSuccess();
-      Animated.timing(completeFadeAnim, {
-        toValue: 1,
-        duration: Animation.normal,
-        useNativeDriver: true,
-      }).start();
-
-      await new Promise((resolve) => setTimeout(resolve, 2500));
-
+  const navigateToResult = useCallback(
+    (
+      analysis: Awaited<ReturnType<typeof processAudioDiagnostic>>['analysis'],
+      recordId: string | null,
+      saveFailed: boolean,
+      vehicleId: string | null
+    ) => {
       router.replace({
         pathname: '/result',
         params: {
@@ -153,19 +107,133 @@ export default function ProcessingScreen() {
           confidence: String(analysis.confidence),
           severity: analysis.severity,
           recommendation: analysis.recommendation,
-          recordId: record.id,
+          recordId: recordId ?? '',
           isSimulated: analysis.isSimulated ? '1' : '0',
           fromAnalysis: '1',
-          vehicleId: vehicle?.id ?? '',
+          saveFailed: saveFailed ? '1' : '0',
+          vehicleId: vehicleId ?? '',
         },
       });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : t.processing.analysisInterrupted;
-      setError(msg);
-    } finally {
-      analysisRunning.current = false;
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function runAnalysis() {
+      if (analysisRunning.current) return;
+      analysisRunning.current = true;
+
+      try {
+        if (!user) {
+          throw new Error(t.processing.notAuthenticated);
+        }
+
+        const resolvedUri = await resolveAudioUriForProcessing(audioSessionId, audioUri ?? null);
+
+        const fileInfo = await FileSystem.getInfoAsync(resolvedUri);
+        const fileSize = 'size' in fileInfo && typeof fileInfo.size === 'number' ? fileInfo.size : 0;
+
+        if (!fileInfo.exists || fileSize <= 0) {
+          throw new Error(t.processing.missingAudio);
+        }
+
+        const session = audioSessionId ? getPendingAudioSession(audioSessionId) : null;
+        const parsedDuration = session?.durationMs ?? parseInt(durationMs ?? '0', 10);
+
+        updateBetaSessionSnapshot({
+          recordingPhase: 'processing',
+          durationMs: parsedDuration,
+          qualityScore: session?.recordingQuality?.qualityScore ?? null,
+        });
+
+        const vehicle = await getPrimaryVehicle();
+        const vehicleInfo = vehicle
+          ? {
+              brand: vehicle.brand,
+              model: vehicle.model,
+              year: vehicle.year,
+              fuel_type: vehicle.fuel_type,
+            }
+          : null;
+
+        const outcome = await processAudioDiagnostic(
+          resolvedUri,
+          parsedDuration,
+          user.id,
+          vehicle?.id ?? null,
+          vehicleInfo,
+          session?.recordingQuality ?? null,
+          session?.clientRequestId ?? null
+        );
+
+        if (cancelled || !mountedRef.current) return;
+
+        if (audioSessionId) {
+          removePendingAudioSession(audioSessionId);
+        }
+
+        if (outcome.saveFailed) {
+          logBetaEvent(
+            'supabase_save',
+            outcome.saveErrorMessage ?? 'Diagnostic save failed',
+            'SAVE_FAILED'
+          );
+        } else {
+          logBetaEvent('analysis', 'Analysis completed and saved', 'ANALYSIS_OK');
+        }
+
+        try {
+          await refreshUsage('after_analysis');
+        } catch (refreshError: unknown) {
+          const message =
+            refreshError instanceof Error ? refreshError.message : 'Subscription refresh failed';
+          logBetaEvent('subscription', message, 'SUBSCRIPTION_REFRESH_FAILED');
+        }
+
+        setPhase('complete');
+        setProgressStep(3);
+        void hapticSuccess();
+        Animated.timing(completeFadeAnim, {
+          toValue: 1,
+          duration: Animation.normal,
+          useNativeDriver: true,
+        }).start();
+
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+
+        if (cancelled || !mountedRef.current) return;
+
+        updateBetaSessionSnapshot({ recordingPhase: 'complete' });
+        navigateToResult(outcome.analysis, outcome.record?.id ?? null, outcome.saveFailed, vehicle?.id ?? null);
+      } catch (err: unknown) {
+        if (cancelled || !mountedRef.current) return;
+        const msg = err instanceof Error ? err.message : t.processing.analysisInterrupted;
+        logBetaEvent('analysis', msg, 'ANALYSIS_FAILED');
+        setError(msg);
+      } finally {
+        analysisRunning.current = false;
+      }
     }
-  }
+
+    void runAnalysis();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    audioSessionId,
+    audioUri,
+    completeFadeAnim,
+    durationMs,
+    navigateToResult,
+    refreshUsage,
+    t.processing.analysisInterrupted,
+    t.processing.missingAudio,
+    t.processing.notAuthenticated,
+    user,
+  ]);
 
   const spinInterpolate = spinAnim.interpolate({
     inputRange: [0, 1],

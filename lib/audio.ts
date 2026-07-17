@@ -38,6 +38,7 @@ export type PendingAudioSession = {
   userId: string;
   vehicleId: string | null;
   recordingQuality?: RecordingQuality | null;
+  clientRequestId: string;
 };
 
 const pendingAudioSessions = new Map<string, PendingAudioSession>();
@@ -114,9 +115,16 @@ export function buildLocalAudioDirectory(userId: string, vehicleId: string | nul
   return `${FileSystem.documentDirectory}motorecho/audio/${userId}/${vehicleSegment}/`;
 }
 
-export function createPendingAudioSession(session: PendingAudioSession): string {
+export function createClientRequestId(): string {
+  return `diag-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+export function createPendingAudioSession(
+  session: Omit<PendingAudioSession, 'clientRequestId'> & { clientRequestId?: string }
+): string {
   const id = `audio-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  pendingAudioSessions.set(id, session);
+  const clientRequestId = session.clientRequestId ?? createClientRequestId();
+  pendingAudioSessions.set(id, { ...session, clientRequestId });
   return id;
 }
 

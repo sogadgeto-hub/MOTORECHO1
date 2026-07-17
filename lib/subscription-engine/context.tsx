@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { logBetaEvent } from '@/lib/beta-logger';
 import { fetchPlanAccessSnapshot, type PlanAccessSnapshot } from '@/lib/plan-access';
 import type { UserPlan } from '@/lib/diagnostic-engine';
 import {
@@ -144,7 +145,9 @@ export function SubscriptionEngineProvider({
     try {
       const next = await loadAccessState(cachedPaidSubscriptionRef.current, 'refresh');
       applyAccessState(next.subscription, next.snapshot, next.cachedPaidSubscription);
-    } catch {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Subscription refresh failed';
+      logBetaEvent('subscription', message, 'SUBSCRIPTION_REFRESH');
       cachedPaidSubscriptionRef.current = null;
       setSnapshot(DEFAULT_SNAPSHOT);
       setSubscription(createFreeSubscription());
@@ -159,7 +162,9 @@ export function SubscriptionEngineProvider({
     try {
       const next = await loadAccessState(cachedPaidSubscriptionRef.current, phase);
       applyAccessState(next.subscription, next.snapshot, next.cachedPaidSubscription);
-    } catch {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Usage refresh failed';
+      logBetaEvent('subscription', message, 'USAGE_REFRESH_FAILED');
       // Conserver l'état courant — ne pas écraser un entitlement actif par erreur transitoire.
     }
   }, [userId, applyAccessState]);
@@ -191,7 +196,9 @@ export function SubscriptionEngineProvider({
           if (!cancelled) {
             applyAccessState(next.subscription, next.snapshot, next.cachedPaidSubscription);
           }
-        } catch {
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : 'Subscription bootstrap failed';
+          logBetaEvent('subscription', message, 'SUBSCRIPTION_BOOTSTRAP_FAILED');
           if (!cancelled) {
             setSnapshot(DEFAULT_SNAPSHOT);
             setSubscription(createFreeSubscription());
