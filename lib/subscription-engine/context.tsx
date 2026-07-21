@@ -70,7 +70,7 @@ type SubscriptionEngineContextValue = {
   verifyAnalyze: () => ReturnType<typeof verifyCanAnalyze>;
   offerings: RevenueCatLoadedOfferings;
   offeringsLoading: boolean;
-  offeringsError: 'not_configured' | 'network' | 'empty' | null;
+  offeringsError: 'not_configured' | 'beta_disabled' | 'network' | 'empty' | null;
   getPriceLabel: (plan: Extract<UserPlan, 'premium' | 'garage'>, billingCycle: 'monthly' | 'yearly') => string | null;
   getEffectivePlan: () => UserPlan;
   getHighestAccessibleReportTier: () => ReportTier;
@@ -115,7 +115,7 @@ export function SubscriptionEngineProvider({
   const [offerings, setOfferings] = useState<RevenueCatLoadedOfferings>(createEmptyOfferings());
   const [offeringsLoading, setOfferingsLoading] = useState(false);
   const [offeringsError, setOfferingsError] = useState<
-    'not_configured' | 'network' | 'empty' | null
+    'not_configured' | 'beta_disabled' | 'network' | 'empty' | null
   >(null);
   const cachedPaidSubscriptionRef = useRef<SubscriptionInfo | null>(null);
 
@@ -188,6 +188,9 @@ export function SubscriptionEngineProvider({
         setOfferings(initResult.offerings ?? createEmptyOfferings());
         setOfferingsError(initResult.error);
         setOfferingsLoading(false);
+        if (initResult.error === 'beta_disabled') {
+          logBetaEvent('subscription', 'RevenueCat disabled for internal beta', 'RC_BETA_DISABLED');
+        }
       }
 
       if (!cancelled) {

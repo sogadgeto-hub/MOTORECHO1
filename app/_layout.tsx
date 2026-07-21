@@ -34,7 +34,7 @@ function RootNavigator() {
     }
   }, [loading]);
 
-  if (loading) {
+  if (loading || (user && !profile)) {
     return <AppLoadingScreen />;
   }
 
@@ -54,9 +54,16 @@ function RootNavigator() {
           <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         </Stack>
       ) : profile && !profile.onboarding_completed ? (
-        <Stack screenOptions={stackOptions}>
-          <Stack.Screen name="payment" options={{ headerShown: false }} />
+        <Stack
+          screenOptions={stackOptions}
+          initialRouteName={
+            isBetaDiagnosticsEnabled() || profile.plan_type === 'free'
+              ? 'vehicle-setup'
+              : 'payment'
+          }
+        >
           <Stack.Screen name="vehicle-setup" options={{ headerShown: false }} />
+          <Stack.Screen name="payment" options={{ headerShown: false }} />
         </Stack>
       ) : (
         <Stack screenOptions={stackOptions}>

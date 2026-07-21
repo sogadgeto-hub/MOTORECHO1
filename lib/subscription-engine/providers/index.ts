@@ -14,8 +14,14 @@ export {
   isRevenueCatAvailable,
   isRevenueCatConfigured,
   isRevenueCatNativeBuildRequired,
+  isRevenueCatDisabledForInternalBeta,
   revenueCatSubscriptionProvider,
 } from './revenuecat';
+
+export {
+  isAndroidReleaseTestStoreKey,
+  getRevenueCatDisableLogMessage,
+} from './revenuecat-guard';
 
 export {
   REVENUECAT_OFFERING_IDS,

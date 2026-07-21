@@ -151,6 +151,13 @@
     "processing": "Processing...",
     "subscribe": "Subscribe — €{{price}}{{period}}",
     "skipForNow": "Skip for now — subscribe later",
+    "beta": {
+      "title": "Internal beta",
+      "subtitle": "Premium payment is disabled during internal testing.",
+      "banner": "Internal beta mode — no real payment will be processed.",
+      "note": "You will continue on the Free plan for this beta. Premium purchases will be available in the public release.",
+      "continueButton": "Continue in beta mode"
+    },
     "success": {
       "title": "Payment successful!",
       "subtitle": "Welcome to {{plan}}. Setting up your account..."
@@ -816,7 +823,8 @@
       "noOfferings": "Subscriptions are unavailable right now. Please try again later.",
       "noPackage": "This plan is not available for the selected billing cycle.",
       "failed": "Purchase failed. Check your connection and try again.",
-      "networkError": "Unable to load subscription prices. Check your network connection."
+      "networkError": "Unable to load subscription prices. Check your network connection.",
+      "betaUnavailable": "Premium purchases are temporarily unavailable during the internal beta. Your Free plan remains fully active."
     }
   },
   "settings": {

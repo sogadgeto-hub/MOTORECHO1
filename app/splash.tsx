@@ -8,7 +8,7 @@ import { Activity } from 'lucide-react-native';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const { t } = useI18n();
 
   const logoScale = useRef(new Animated.Value(0.7)).current;
@@ -28,20 +28,14 @@ export default function SplashScreen() {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || user) return;
 
     const timer = setTimeout(() => {
-      if (!user) {
-        router.replace('/plans');
-      } else if (profile && !profile.onboarding_completed) {
-        router.replace('/vehicle-setup');
-      } else {
-        router.replace('/(tabs)');
-      }
+      router.replace('/plans');
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [loading, user, profile]);
+  }, [loading, user, router]);
 
   return (
     <View style={styles.container}>

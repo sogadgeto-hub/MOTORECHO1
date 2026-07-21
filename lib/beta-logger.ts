@@ -1,4 +1,5 @@
 export type BetaLogCategory =
+  | 'auth'
   | 'microphone_permission'
   | 'recording_start'
   | 'recording_stop'

@@ -3,10 +3,16 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Animat
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FadeInView } from '@/components/FadeInView';
-import { ArrowLeft, Lock, CreditCard, CheckCircle, Shield, Crown, Building2 } from 'lucide-react-native';
+import { ArrowLeft, Lock, CreditCard, CheckCircle, Shield, Crown, Building2, FlaskConical } from 'lucide-react-native';
 import { MD3Colors, Spacing, Radii } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { isBetaDiagnosticsEnabled } from '@/lib/beta-diagnostics';
+import {
+  finalizeBetaOnboardingStep,
+  resolvePostOnboardingRoute,
+  type PostOnboardingRoute,
+} from '@/lib/onboarding-flow';
 
 type BillingCycle = 'monthly' | 'yearly';
 
@@ -31,11 +37,12 @@ const PLAN_INFO = {
 
 export default function PaymentScreen() {
   const router = useRouter();
-  const { updatePlan } = useAuth();
+  const { user, profile, updatePlan, refreshProfile } = useAuth();
   const { t } = useI18n();
   const params = useLocalSearchParams<{ plan?: string }>();
-  const plan = (params.plan ?? 'premium') as 'premium' | 'garage';
+  const plan = (params.plan ?? profile?.plan_type ?? 'premium') as 'premium' | 'garage';
   const info = PLAN_INFO[plan] ?? PLAN_INFO.premium;
+  const isBetaMode = isBetaDiagnosticsEnabled();
 
   const [billing, setBilling] = useState<BillingCycle>('monthly');
   const [cardNumber, setCardNumber] = useState('');
@@ -55,7 +62,42 @@ export default function PaymentScreen() {
         Animated.timing(successOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
       ]).start();
     }
-  }, [success]);
+  }, [success, successOpacity, successScale]);
+
+  async function navigateAfterOnboarding(route: PostOnboardingRoute) {
+    if (route === '/vehicle-setup') {
+      router.replace(route);
+    }
+  }
+
+  async function handleBetaContinue() {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const route = await finalizeBetaOnboardingStep(
+        user.id,
+        updatePlan,
+        refreshProfile,
+        profile
+      );
+      await navigateAfterOnboarding(route);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSkip() {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const route = isBetaMode
+        ? await finalizeBetaOnboardingStep(user.id, updatePlan, refreshProfile, profile)
+        : await resolvePostOnboardingRoute(user.id, profile);
+      await navigateAfterOnboarding(route);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function formatCardNumber(val: string) {
     const digits = val.replace(/\D/g, '').slice(0, 16);
@@ -71,13 +113,22 @@ export default function PaymentScreen() {
   async function handlePay() {
     if (!name.trim()) return;
     setLoading(true);
-    // Simulate payment processing (mock)
-    await new Promise(r => setTimeout(r, 1800));
+    await new Promise((r) => setTimeout(r, 1800));
     const { error } = await updatePlan(plan);
     setLoading(false);
     if (!error) {
       setSuccess(true);
-      setTimeout(() => router.replace('/vehicle-setup'), 2000);
+      setTimeout(() => {
+        void (async () => {
+          if (user) {
+            await refreshProfile();
+            const route = await resolvePostOnboardingRoute(user.id, profile);
+            await navigateAfterOnboarding(route);
+          } else {
+            router.replace('/vehicle-setup');
+          }
+        })();
+      }, 2000);
     }
   }
 
@@ -95,6 +146,63 @@ export default function PaymentScreen() {
           <Text style={styles.successTitle}>{t.payment.success.title}</Text>
           <Text style={styles.successSubtitle}>{t.payment.success.subtitle.replace('{{plan}}', info.name)}</Text>
         </Animated.View>
+      </View>
+    );
+  }
+
+  if (isBetaMode) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={['#06080F', MD3Colors.background, '#0A0A0E']} style={StyleSheet.absoluteFill} />
+        <View style={styles.ambientTop} />
+
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <FadeInView delay={50} style={styles.header}>
+            <View style={[styles.planBadge, { backgroundColor: `${info.color}12`, borderColor: `${info.color}30` }]}>
+              <info.icon size={16} color={info.color} strokeWidth={2} />
+              <Text style={[styles.planBadgeText, { color: info.color }]}>{info.name}</Text>
+            </View>
+            <Text style={styles.title}>{t.payment.beta.title}</Text>
+            <Text style={styles.subtitle}>{t.payment.beta.subtitle}</Text>
+          </FadeInView>
+
+          <FadeInView delay={100} style={styles.betaBanner}>
+            <FlaskConical size={18} color={MD3Colors.tertiaryFixedDim} strokeWidth={2} />
+            <Text style={styles.betaBannerText}>{t.payment.beta.banner}</Text>
+          </FadeInView>
+
+          <FadeInView delay={150} style={styles.betaNote}>
+            <Text style={styles.betaNoteText}>{t.payment.beta.note}</Text>
+          </FadeInView>
+
+          <FadeInView delay={200}>
+            <TouchableOpacity
+              style={[styles.payButton, loading && styles.payButtonDisabled]}
+              onPress={() => void handleBetaContinue()}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={[MD3Colors.primaryFixedDim, MD3Colors.primaryFixed]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.payGradient}
+              >
+                <Text style={styles.payText}>
+                  {loading ? t.common.loading : t.payment.beta.continueButton}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </FadeInView>
+
+          <FadeInView delay={250} style={styles.skipRow}>
+            <TouchableOpacity onPress={() => void handleSkip()} disabled={loading} activeOpacity={0.7}>
+              <Text style={styles.skipText}>{t.payment.skipForNow}</Text>
+            </TouchableOpacity>
+          </FadeInView>
+
+          <View style={styles.spacer} />
+        </ScrollView>
       </View>
     );
   }
@@ -118,7 +226,6 @@ export default function PaymentScreen() {
           <Text style={styles.subtitle}>{t.payment.subtitle}</Text>
         </FadeInView>
 
-        {/* Billing Toggle — only for premium */}
         {plan === 'premium' && info.yearlyPrice && (
           <FadeInView delay={100} style={styles.billingToggle}>
             <TouchableOpacity
@@ -141,7 +248,6 @@ export default function PaymentScreen() {
           </FadeInView>
         )}
 
-        {/* Price Summary */}
         <FadeInView delay={150} style={styles.priceSummary}>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>{t.payment.total}</Text>
@@ -152,7 +258,6 @@ export default function PaymentScreen() {
           </View>
         </FadeInView>
 
-        {/* Card Form */}
         <FadeInView delay={200} style={styles.formSection}>
           <View style={styles.sectionHeader}>
             <CreditCard size={16} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
@@ -214,25 +319,19 @@ export default function PaymentScreen() {
           </View>
         </FadeInView>
 
-        {/* Security Note */}
         <FadeInView delay={300} style={styles.securityNote}>
           <Shield size={14} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
-          <Text style={styles.securityText}>
-            {t.payment.securityNote}
-          </Text>
+          <Text style={styles.securityText}>{t.payment.securityNote}</Text>
         </FadeInView>
 
-        {/* Demo Notice */}
         <FadeInView delay={350} style={styles.demoNotice}>
-          <Text style={styles.demoText}>
-            {t.payment.demoNotice}
-          </Text>
+          <Text style={styles.demoText}>{t.payment.demoNotice}</Text>
         </FadeInView>
 
         <FadeInView delay={400}>
           <TouchableOpacity
             style={[styles.payButton, (!name.trim() || loading) && styles.payButtonDisabled]}
-            onPress={handlePay}
+            onPress={() => void handlePay()}
             disabled={!name.trim() || loading}
             activeOpacity={0.85}
           >
@@ -251,7 +350,7 @@ export default function PaymentScreen() {
         </FadeInView>
 
         <FadeInView delay={450} style={styles.skipRow}>
-          <TouchableOpacity onPress={() => router.replace('/vehicle-setup')} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => void handleSkip()} disabled={loading} activeOpacity={0.7}>
             <Text style={styles.skipText}>{t.payment.skipForNow}</Text>
           </TouchableOpacity>
         </FadeInView>
@@ -279,6 +378,38 @@ const styles = StyleSheet.create({
   planBadgeText: { fontFamily: 'HankenGrotesk-SemiBold', fontSize: 13 },
   title: { fontFamily: 'HankenGrotesk-Bold', fontSize: 26, color: MD3Colors.onSurface, marginBottom: 6 },
   subtitle: { fontFamily: 'HankenGrotesk-Regular', fontSize: 14, color: MD3Colors.onSurfaceVariant },
+  betaBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(232,196,35,0.08)',
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(232,196,35,0.2)',
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  betaBannerText: {
+    flex: 1,
+    fontFamily: 'HankenGrotesk-Medium',
+    fontSize: 14,
+    color: MD3Colors.tertiaryFixedDim,
+    lineHeight: 20,
+  },
+  betaNote: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  betaNoteText: {
+    fontFamily: 'HankenGrotesk-Regular',
+    fontSize: 13,
+    color: MD3Colors.onSurfaceVariant,
+    lineHeight: 19,
+  },
   billingToggle: {
     flexDirection: 'row',
     backgroundColor: MD3Colors.surfaceContainer,

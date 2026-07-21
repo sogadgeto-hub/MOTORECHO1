@@ -66,8 +66,6 @@ export default function AuthScreen() {
         const result = await signIn(email.trim(), password);
         if (result.error) {
           setError(result.error);
-        } else {
-          router.replace('/(tabs)');
         }
       } else {
         const result = await signUp(email.trim(), password, firstName.trim(), lastName.trim());
@@ -81,12 +79,6 @@ export default function AuthScreen() {
               plan_type: selectedPlan,
               allow_ai_training: allowAiTraining,
             }).eq('id', session.user.id);
-          }
-
-          if (selectedPlan === 'free') {
-            router.replace('/vehicle-setup');
-          } else {
-            router.replace({ pathname: '/payment', params: { plan: selectedPlan } });
           }
         }
       }

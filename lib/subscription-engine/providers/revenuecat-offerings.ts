@@ -16,8 +16,10 @@ import {
 import {
   configureRevenueCat,
   isRevenueCatAvailable,
+  isRevenueCatDisabledForInternalBeta,
   mapCustomerInfoToSubscription,
 } from './revenuecat';
+import { logRevenueCatDisabledForInternalBeta } from './revenuecat-guard';
 
 export const REVENUECAT_OFFERING_IDS = {
   PREMIUM: 'default',
@@ -36,7 +38,7 @@ export type RevenueCatLoadedOfferings = {
 
 export type RevenueCatOfferingsLoadResult = {
   offerings: RevenueCatLoadedOfferings | null;
-  error: 'not_configured' | 'network' | 'empty' | null;
+  error: 'not_configured' | 'beta_disabled' | 'network' | 'empty' | null;
 };
 
 export type RevenueCatPurchaseResult =
@@ -78,6 +80,11 @@ function mapOfferingPackages(offering: PurchasesOffering | null): RevenueCatPlan
 
 /** Charge les offerings RevenueCat (default + garage). */
 export async function loadRevenueCatOfferings(): Promise<RevenueCatOfferingsLoadResult> {
+  if (isRevenueCatDisabledForInternalBeta()) {
+    logRevenueCatDisabledForInternalBeta();
+    return { offerings: null, error: 'beta_disabled' };
+  }
+
   if (!isRevenueCatAvailable()) {
     console.log('[RevenueCat] Offerings indisponibles — SDK non configuré');
     return { offerings: null, error: 'not_configured' };
@@ -148,6 +155,15 @@ function isPurchaseCancelledError(error: unknown): boolean {
 export async function purchaseRevenueCatPackage(
   rcPackage: PurchasesPackage
 ): Promise<RevenueCatPurchaseResult> {
+  if (isRevenueCatDisabledForInternalBeta()) {
+    logRevenueCatDisabledForInternalBeta();
+    return { ok: false, cancelled: false, reason: 'beta_disabled' };
+  }
+
+  if (!isRevenueCatAvailable()) {
+    return { ok: false, cancelled: false, reason: 'not_configured' };
+  }
+
   console.log('[RevenueCat] Achat lancé:', rcPackage.identifier);
 
   try {
@@ -173,6 +189,11 @@ export async function purchaseRevenueCatPackage(
 export async function initializeRevenueCatApp(
   appUserId?: string
 ): Promise<RevenueCatOfferingsLoadResult> {
+  if (isRevenueCatDisabledForInternalBeta()) {
+    logRevenueCatDisabledForInternalBeta();
+    return { offerings: null, error: 'beta_disabled' };
+  }
+
   const configured = await configureRevenueCat(appUserId);
   if (!configured) {
     return { offerings: null, error: 'not_configured' };

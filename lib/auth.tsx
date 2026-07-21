@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logBetaEvent } from '@/lib/beta-logger';
 import { supabase } from './supabase';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        setLoading(true);
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
@@ -65,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function fetchProfile(userId: string) {
+  async function fetchProfile(userId: string, attempt = 0) {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -73,7 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116' && attempt < 4) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          return fetchProfile(userId, attempt + 1);
+        }
+        throw error;
+      }
       const profileData = data as Profile;
       setProfile(profileData);
 
@@ -82,7 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem('@motorecho_language', profileData.language_preference);
       }
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      const message = err instanceof Error ? err.message : 'Profile fetch failed';
+      logBetaEvent('auth', message, 'PROFILE_FETCH_FAILED');
+      if (__DEV__) {
+        console.error('Error fetching profile:', err);
+      }
     } finally {
       setLoading(false);
     }

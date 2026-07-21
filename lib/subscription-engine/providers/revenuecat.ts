@@ -9,6 +9,10 @@ import type { UserPlan } from '@/lib/diagnostic-engine';
 import { daysUntilExpiration, createFreeSubscription } from '../subscription';
 import type { SubscriptionInfo, SubscriptionStatus } from '../types';
 import type { SubscriptionProviderAdapter } from './types';
+import {
+  isRevenueCatDisabledForInternalBeta,
+  logRevenueCatDisabledForInternalBeta,
+} from './revenuecat-guard';
 
 export const REVENUECAT_ENTITLEMENTS = {
   PREMIUM: 'premium',
@@ -39,14 +43,20 @@ export function isRevenueCatNativeBuildRequired(): boolean {
   return Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 }
 
-/** RevenueCat est utilisable (mobile + clé publique). */
+/** RevenueCat est utilisable (mobile + clé publique + pas désactivé en bêta interne). */
 export function isRevenueCatAvailable(): boolean {
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
     return false;
   }
 
+  if (isRevenueCatDisabledForInternalBeta()) {
+    return false;
+  }
+
   return isRevenueCatConfigured();
 }
+
+export { isRevenueCatDisabledForInternalBeta } from './revenuecat-guard';
 
 function createRevenueCatFreeSubscription(): SubscriptionInfo {
   return {
@@ -126,6 +136,12 @@ export function mapCustomerInfoToSubscription(customerInfo: CustomerInfo): Subsc
 
 /** Initialise le SDK RevenueCat (clés publiques EXPO_PUBLIC uniquement). */
 export async function configureRevenueCat(appUserId?: string): Promise<boolean> {
+  if (isRevenueCatDisabledForInternalBeta()) {
+    logRevenueCatDisabledForInternalBeta();
+    configured = false;
+    return false;
+  }
+
   if (!isRevenueCatAvailable()) {
     configured = false;
     return false;
@@ -138,6 +154,13 @@ export async function configureRevenueCat(appUserId?: string): Promise<boolean> 
   }
 
   try {
+    if (configured) {
+      if (appUserId) {
+        await Purchases.logIn(appUserId);
+      }
+      return true;
+    }
+
     if (__DEV__) {
       Purchases.setLogLevel(LOG_LEVEL.DEBUG);
     }

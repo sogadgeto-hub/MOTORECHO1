@@ -67,6 +67,7 @@ export {
   isRevenueCatAvailable,
   isRevenueCatConfigured,
   isRevenueCatNativeBuildRequired,
+  isRevenueCatDisabledForInternalBeta,
   REVENUECAT_ENTITLEMENTS,
   REVENUECAT_OFFERING_IDS,
   loadRevenueCatOfferings,

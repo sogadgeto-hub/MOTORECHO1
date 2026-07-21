@@ -2,7 +2,8 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 export function isBetaDiagnosticsEnabled(): boolean {
-  return __DEV__ || process.env.EXPO_PUBLIC_BETA_DIAGNOSTICS === '1';
+  const flag = process.env.EXPO_PUBLIC_BETA_DIAGNOSTICS?.trim().toLowerCase();
+  return __DEV__ || flag === '1' || flag === 'true';
 }
 
 export function getAppVersionLabel(): string {

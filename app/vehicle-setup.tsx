@@ -15,7 +15,7 @@ const ENGINE_TYPES = ['1.0L Turbo', '1.2L', '1.4L Turbo', '1.5L', '1.6L', '2.0L'
 
 export default function VehicleSetupScreen() {
   const router = useRouter();
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { t } = useI18n();
   const [brand, setBrand] = useState('');
   const [brandId, setBrandId] = useState<string | null>(null);
@@ -77,7 +77,6 @@ export default function VehicleSetupScreen() {
       }
 
       await refreshProfile();
-      router.replace('/(tabs)');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
@@ -93,9 +92,13 @@ export default function VehicleSetupScreen() {
       <View style={styles.ambientBottom} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
-          <ArrowLeft size={24} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
-        </TouchableOpacity>
+        {!profile?.onboarding_completed ? (
+          <View style={styles.backButtonSpacer} />
+        ) : (
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
+            <ArrowLeft size={24} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
+          </TouchableOpacity>
+        )}
 
         <FadeInView delay={100} style={styles.headerSection}>
           <View style={styles.iconContainer}>
@@ -253,6 +256,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: { paddingTop: 60, paddingHorizontal: Spacing.lg, flexGrow: 1 },
   backButton: { padding: Spacing.sm, marginBottom: Spacing.lg, width: 44 },
+  backButtonSpacer: { height: 44, marginBottom: Spacing.lg },
   headerSection: { alignItems: 'center', marginBottom: Spacing.xxl },
   iconContainer: {
     width: 80, height: 80, borderRadius: 40,

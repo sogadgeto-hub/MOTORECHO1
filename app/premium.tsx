@@ -101,6 +101,11 @@ export default function PremiumScreen() {
       return;
     }
 
+    if (offeringsError === 'beta_disabled') {
+      setPurchaseMessage(t.premium.purchase.betaUnavailable);
+      return;
+    }
+
     if (offeringsError === 'empty' || offeringsError === 'not_configured') {
       setPurchaseMessage(t.premium.purchase.noOfferings);
       return;
@@ -127,6 +132,11 @@ export default function PremiumScreen() {
         return;
       }
 
+      if (result.reason === 'beta_disabled') {
+        setPurchaseMessage(t.premium.purchase.betaUnavailable);
+        return;
+      }
+
       if (result.reason === 'no_package') {
         setPurchaseMessage(t.premium.purchase.noPackage);
         return;
@@ -139,7 +149,9 @@ export default function PremiumScreen() {
   }
 
   const offeringsBannerMessage =
-    offeringsError === 'network'
+    offeringsError === 'beta_disabled'
+      ? t.premium.purchase.betaUnavailable
+      : offeringsError === 'network'
       ? t.premium.purchase.networkError
       : offeringsError === 'empty' || offeringsError === 'not_configured'
         ? t.premium.purchase.noOfferings

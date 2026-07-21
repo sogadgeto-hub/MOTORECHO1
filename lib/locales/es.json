@@ -151,6 +151,13 @@
     "processing": "Procesando...",
     "subscribe": "Suscribirse — {{price}} €{{period}}",
     "skipForNow": "Omitir por ahora — suscribirse más tarde",
+    "beta": {
+      "title": "Beta interna",
+      "subtitle": "El pago Premium está desactivado durante las pruebas internas.",
+      "banner": "Modo beta interno — no se procesará ningún pago real.",
+      "note": "Continuarás con el plan Free durante esta beta. Las compras Premium estarán disponibles en el lanzamiento público.",
+      "continueButton": "Continuar en modo beta"
+    },
     "success": {
       "title": "¡Pago exitoso!",
       "subtitle": "Bienvenido a {{plan}}. Configurando tu cuenta..."
@@ -816,7 +823,8 @@
       "noOfferings": "Las suscripciones no están disponibles ahora. Inténtalo más tarde.",
       "noPackage": "Este plan no está disponible para el ciclo de facturación seleccionado.",
       "failed": "La compra falló. Comprueba tu conexión e inténtalo de nuevo.",
-      "networkError": "No se pudieron cargar los precios. Comprueba tu conexión de red."
+      "networkError": "No se pudieron cargar los precios. Comprueba tu conexión de red.",
+      "betaUnavailable": "Las compras Premium no están disponibles temporalmente durante la beta interna. Tu plan Free sigue activo."
     }
   },
   "settings": {
