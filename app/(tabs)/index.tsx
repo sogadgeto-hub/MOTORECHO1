@@ -26,7 +26,7 @@ import { useAuth } from '@/lib/auth';
 import { formatPlanLabel } from '@/lib/plan-access';
 import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useI18n } from '@/lib/i18n';
-import { stripRecordingQualityMarker } from '@/lib/audio-quality';
+import { stripRecordingQualityMarker } from '@/lib/audio-quality/recommendation';
 import { navigateToVehicleHealth } from '@/lib/navigation';
 
 export default function HomeScreen() {

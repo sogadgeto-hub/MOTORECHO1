@@ -37,7 +37,6 @@ export {
 export { clampScore, sanitizeDurationMs, sanitizeNormalized, sanitizeNumber } from './guards';
 export { recordingQualityToDbRow, dbRowToRecordingQuality } from './persist';
 export type { RecordingQualityDbRow } from './persist';
-export { runAudioQualitySelfCheck } from './self-check';
 export {
   computeVolumeMetrics,
   dbToNormalized,

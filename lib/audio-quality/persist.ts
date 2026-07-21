@@ -29,7 +29,13 @@ export function recordingQualityToDbRow(
   };
 }
 
-export function dbRowToRecordingQuality(row: Partial<RecordingQualityDbRow>): RecordingQuality | null {
+export function dbRowToRecordingQuality(
+  row: Partial<RecordingQualityDbRow> | null | undefined
+): RecordingQuality | null {
+  if (row == null || typeof row !== 'object') {
+    return null;
+  }
+
   if (row.recording_quality_score == null && row.recording_quality_level == null) {
     return null;
   }

@@ -14,6 +14,30 @@ function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(message);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function safeObjectEntries(value: unknown): [string, unknown][] {
+  if (!isRecord(value)) return [];
+  return Object.entries(value);
+}
+
+function safeDbRow(value: unknown): ReturnType<typeof recordingQualityToDbRow> {
+  if (!isRecord(value)) return {};
+  return value as ReturnType<typeof recordingQualityToDbRow>;
+}
+
+/** Node CLI only — never auto-run inside Metro / React Native bundles. */
+export function shouldRunAudioQualitySelfCheckInNodeCli(): boolean {
+  return (
+    typeof process !== 'undefined' &&
+    typeof process.versions?.node === 'string' &&
+    Array.isArray(process.argv) &&
+    process.argv.some((arg) => typeof arg === 'string' && arg.includes('self-check'))
+  );
+}
+
 export function runAudioQualitySelfCheck(): void {
   const excellent = computeQualityScore({
     averageVolume: 0.5,
@@ -57,7 +81,9 @@ export function runAudioQualitySelfCheck(): void {
   const sampleQuality = analyseRecording({ samples: [], durationMs: 5000, fileSizeBytes: 12000 });
   const row = recordingQualityToDbRow(sampleQuality);
   assert(row.recording_quality_score != null, 'quality score should serialize');
-  const roundTrip = dbRowToRecordingQuality(row);
+  assert(safeObjectEntries(row).length > 0, 'db row should contain serializable fields');
+
+  const roundTrip = dbRowToRecordingQuality(safeDbRow(row));
   assert(roundTrip !== null, 'db row should deserialize');
   assert(roundTrip!.qualityScore === sampleQuality.qualityScore, 'quality score round-trip mismatch');
 
@@ -73,13 +99,14 @@ export function runAudioQualitySelfCheck(): void {
   clearBetaLog();
   logBetaEvent('analysis', 'Test event', 'TEST');
   const report = buildTechnicalReport({ appVersion: '1.0.0', platform: 'test' });
+  assert(typeof report === 'string' && report.length > 0, 'report should be a non-empty string');
   assert(report.includes('MotorEcho Beta Technical Report'), 'report header missing');
   assert(report.includes('analysis'), 'report should include category');
   assert(!report.includes('Bearer '), 'report must not contain tokens');
   assert(!report.includes('@'), 'report must not contain emails in test context');
 }
 
-if (typeof process !== 'undefined' && process.argv[1]?.includes('self-check')) {
+if (shouldRunAudioQualitySelfCheckInNodeCli()) {
   runAudioQualitySelfCheck();
   console.log('audio-quality self-check passed');
 }

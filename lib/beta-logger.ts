@@ -47,13 +47,18 @@ export function getLastBetaLogEntry(): BetaLogEntry | null {
   return entries[0] ?? null;
 }
 
-export function buildTechnicalReport(context: Record<string, string | number | boolean | null>): string {
+export function buildTechnicalReport(
+  context?: Record<string, string | number | boolean | null> | null
+): string {
+  const safeContext =
+    context != null && typeof context === 'object' && !Array.isArray(context) ? context : {};
+
   const lines = [
     '=== MotorEcho Beta Technical Report ===',
     `generatedAt: ${new Date().toISOString()}`,
     '',
     '--- Context ---',
-    ...Object.entries(context).map(([key, value]) => `${key}: ${String(value ?? 'null')}`),
+    ...Object.entries(safeContext).map(([key, value]) => `${key}: ${String(value ?? 'null')}`),
     '',
     '--- Recent events ---',
   ];

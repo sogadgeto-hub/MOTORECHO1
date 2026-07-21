@@ -16,7 +16,7 @@ import { FadeInView } from '@/components/FadeInView';
 import { SkeletonList } from '@/components/Skeleton';
 import { MD3Colors, Colors, Spacing, Radii, IconStroke } from '@/lib/theme';
 import { getDiagnostics, DiagnosticRecord } from '@/lib/analyzer';
-import { stripRecordingQualityMarker } from '@/lib/audio-quality';
+import { stripRecordingQualityMarker } from '@/lib/audio-quality/recommendation';
 import { useI18n } from '@/lib/i18n';
 
 export default function HistoryScreen() {
