@@ -7,7 +7,7 @@ export type SubscriptionStatus =
   | 'expired'
   | 'cancelled';
 
-export type SubscriptionProvider = 'none' | 'revenuecat' | 'stripe' | 'manual';
+export type SubscriptionProvider = 'none' | 'revenuecat' | 'stripe' | 'manual' | 'internal_beta';
 
 export type SubscriptionInfo = {
   plan: UserPlan;

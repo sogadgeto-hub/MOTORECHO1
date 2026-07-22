@@ -155,7 +155,7 @@
       "title": "Beta interna",
       "subtitle": "El pago Premium está desactivado durante las pruebas internas.",
       "banner": "Modo beta interno — no se procesará ningún pago real.",
-      "note": "Continuarás con el plan Free durante esta beta. Las compras Premium estarán disponibles en el lanzamiento público.",
+      "note": "El acceso Premium se activa automáticamente para todas las cuentas durante esta beta interna. Las compras estarán disponibles en el lanzamiento público.",
       "continueButton": "Continuar en modo beta"
     },
     "success": {
@@ -824,7 +824,8 @@
       "noPackage": "Este plan no está disponible para el ciclo de facturación seleccionado.",
       "failed": "La compra falló. Comprueba tu conexión e inténtalo de nuevo.",
       "networkError": "No se pudieron cargar los precios. Comprueba tu conexión de red.",
-      "betaUnavailable": "Las compras Premium no están disponibles temporalmente durante la beta interna. Tu plan Free sigue activo."
+      "betaUnavailable": "Las compras Premium no están disponibles temporalmente durante la beta interna. Tu plan Free sigue activo.",
+      "betaPremiumActive": "Beta interna — el acceso Premium se activa automáticamente para todas las cuentas conectadas. Esta pantalla es informativa; las compras estarán disponibles en el lanzamiento público."
     }
   },
   "settings": {

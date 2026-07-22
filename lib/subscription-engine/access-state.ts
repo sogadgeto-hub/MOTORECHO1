@@ -2,6 +2,11 @@ import type { PlanAccessSnapshot } from '@/lib/plan-access';
 import { mergeSnapshotWithSubscription } from './providers/revenuecat-offerings';
 import { fetchRevenueCatSubscription, isRevenueCatAvailable } from './providers/revenuecat';
 import {
+  applyInternalBetaPremiumSnapshot,
+  isInternalBetaPremiumSubscription,
+  resolveInternalBetaPremiumAccess,
+} from './internal-beta-premium';
+import {
   buildManualSubscriptionFromSnapshot,
   hasActiveRevenueCatEntitlement,
   hasPremiumAccess,
@@ -22,6 +27,10 @@ export function resolveEffectiveSnapshot(
   baseSnapshot: PlanAccessSnapshot,
   subscription: SubscriptionInfo
 ): PlanAccessSnapshot {
+  if (isInternalBetaPremiumSubscription(subscription)) {
+    return applyInternalBetaPremiumSnapshot(baseSnapshot);
+  }
+
   return mergeSnapshotWithSubscription(baseSnapshot, subscription);
 }
 
@@ -53,8 +62,23 @@ export function logAccessState(
  */
 export async function resolveSubscriptionWithRevenueCatPriority(
   baseSnapshot: PlanAccessSnapshot,
-  cachedPaidSubscription: SubscriptionInfo | null
+  cachedPaidSubscription: SubscriptionInfo | null,
+  options?: { isAuthenticated?: boolean }
 ): Promise<{ subscription: SubscriptionInfo; cachedPaidSubscription: SubscriptionInfo | null }> {
+  const isAuthenticated = options?.isAuthenticated ?? true;
+  const betaAccess = resolveInternalBetaPremiumAccess(baseSnapshot, isAuthenticated);
+
+  if (betaAccess) {
+    if (__DEV__) {
+      console.log('[SubscriptionEngine] Internal beta — Premium access granted (RevenueCat bypassed)');
+    }
+
+    return {
+      subscription: betaAccess.subscription,
+      cachedPaidSubscription: betaAccess.subscription,
+    };
+  }
+
   if (isRevenueCatAvailable()) {
     try {
       const revenueCatSubscription = await fetchRevenueCatSubscription();

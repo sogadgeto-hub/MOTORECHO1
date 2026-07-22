@@ -8,6 +8,7 @@ import { AppBackground } from '@/components/AppBackground';
 import { GlassCard } from '@/components/GlassCard';
 import { MD3Colors, Spacing, Radii } from '@/lib/theme';
 import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
+import { isInternalBetaPremiumEnabled } from '@/lib/subscription-engine/internal-beta-premium';
 import { useI18n } from '@/lib/i18n';
 
 type PlanType = 'free' | 'premium' | 'garage';
@@ -23,6 +24,7 @@ export default function PremiumScreen() {
     offeringsError,
   } = useSubscriptionAccess();
   const { t } = useI18n();
+  const isBetaPremiumMode = isInternalBetaPremiumEnabled();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('free');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(false);
@@ -101,6 +103,11 @@ export default function PremiumScreen() {
       return;
     }
 
+    if (isBetaPremiumMode) {
+      setPurchaseMessage(t.premium.purchase.betaPremiumActive);
+      return;
+    }
+
     if (offeringsError === 'beta_disabled') {
       setPurchaseMessage(t.premium.purchase.betaUnavailable);
       return;
@@ -148,14 +155,15 @@ export default function PremiumScreen() {
     }
   }
 
-  const offeringsBannerMessage =
-    offeringsError === 'beta_disabled'
+  const offeringsBannerMessage = isBetaPremiumMode
+    ? t.premium.purchase.betaPremiumActive
+    : offeringsError === 'beta_disabled'
       ? t.premium.purchase.betaUnavailable
       : offeringsError === 'network'
-      ? t.premium.purchase.networkError
-      : offeringsError === 'empty' || offeringsError === 'not_configured'
-        ? t.premium.purchase.noOfferings
-        : null;
+        ? t.premium.purchase.networkError
+        : offeringsError === 'empty' || offeringsError === 'not_configured'
+          ? t.premium.purchase.noOfferings
+          : null;
 
   return (
     <AppBackground>

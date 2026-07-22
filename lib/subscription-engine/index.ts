@@ -82,4 +82,11 @@ export {
   type RevenueCatPurchaseResult,
 } from './providers';
 
+export {
+  isInternalBetaPremiumEnabled,
+  isInternalBetaPremiumSubscription,
+  createInternalBetaPremiumSubscription,
+  applyInternalBetaPremiumSnapshot,
+} from './internal-beta-premium';
+
 export { SubscriptionEngineProvider, useSubscriptionEngine } from './context';

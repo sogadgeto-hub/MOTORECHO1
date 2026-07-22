@@ -155,7 +155,7 @@
       "title": "Bêta interne",
       "subtitle": "Le paiement Premium est désactivé pendant les tests internes.",
       "banner": "Mode bêta interne — aucun paiement réel ne sera effectué.",
-      "note": "Vous continuerez avec le plan Free pendant cette bêta. Les achats Premium seront disponibles à la sortie publique.",
+      "note": "L'accès Premium est automatiquement activé pour tous les comptes pendant cette bêta interne. Les achats seront disponibles à la sortie publique.",
       "continueButton": "Continuer en mode bêta"
     },
     "success": {
@@ -824,7 +824,8 @@
       "noPackage": "Ce plan n'est pas disponible pour la période de facturation sélectionnée.",
       "failed": "L'achat a échoué. Vérifiez votre connexion et réessayez.",
       "networkError": "Impossible de charger les tarifs. Vérifiez votre connexion réseau.",
-      "betaUnavailable": "Les achats Premium sont temporairement indisponibles pendant la bêta interne. Votre plan Free reste pleinement actif."
+      "betaUnavailable": "Les achats Premium sont temporairement indisponibles pendant la bêta interne. Votre plan Free reste pleinement actif.",
+      "betaPremiumActive": "Bêta interne — l'accès Premium est automatiquement activé pour tous les comptes connectés. Cet écran est informatif ; les achats seront disponibles à la sortie publique."
     }
   },
   "settings": {

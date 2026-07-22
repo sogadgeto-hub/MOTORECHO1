@@ -1,6 +1,7 @@
 import type { UserPlan } from '@/lib/diagnostic-engine';
 import type { PlanAccessSnapshot } from '@/lib/plan-access';
 import type { SubscriptionInfo, SubscriptionProvider, SubscriptionStatus } from './types';
+import { isInternalBetaPremiumSubscription } from './internal-beta-premium';
 
 const ACTIVE_STATUSES: SubscriptionStatus[] = ['active', 'trial', 'grace_period'];
 
@@ -55,6 +56,10 @@ export function hasPremiumAccess(
   info: SubscriptionInfo,
   now: Date = new Date()
 ): boolean {
+  if (isInternalBetaPremiumSubscription(info)) {
+    return true;
+  }
+
   if (!isSubscriptionActive(info, now)) {
     return false;
   }

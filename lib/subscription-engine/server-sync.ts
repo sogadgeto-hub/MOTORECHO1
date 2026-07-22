@@ -1,5 +1,6 @@
 import type { PlanAccessSnapshot } from '@/lib/plan-access';
 import type { SubscriptionInfo } from './types';
+import { isInternalBetaPremiumSubscription } from './internal-beta-premium';
 import { hasActiveRevenueCatEntitlement } from './subscription';
 
 export type PlanSyncState = 'aligned' | 'revenuecat_ahead' | 'server_ahead';
@@ -29,7 +30,10 @@ export function getPlanSyncState(
   return 'aligned';
 }
 
-/** Indique si la validation serveur RPC peut être contournée côté client (Test Store). */
+/** Indique si la validation serveur RPC peut être contournée côté client (Test Store / bêta interne). */
 export function shouldBypassServerPlanCheck(subscription: SubscriptionInfo): boolean {
-  return hasActiveRevenueCatEntitlement(subscription);
+  return (
+    hasActiveRevenueCatEntitlement(subscription) ||
+    isInternalBetaPremiumSubscription(subscription)
+  );
 }

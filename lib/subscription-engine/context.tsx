@@ -86,7 +86,8 @@ const SubscriptionEngineContext = createContext<SubscriptionEngineContextValue |
 
 async function loadAccessState(
   cachedPaidSubscription: SubscriptionInfo | null,
-  phase: 'bootstrap' | 'refresh' | 'after_purchase' | 'after_analysis' | 'after_vehicle'
+  phase: 'bootstrap' | 'refresh' | 'after_purchase' | 'after_analysis' | 'after_vehicle',
+  isAuthenticated: boolean
 ): Promise<{
   subscription: SubscriptionInfo;
   snapshot: PlanAccessSnapshot;
@@ -94,7 +95,9 @@ async function loadAccessState(
 }> {
   const baseSnapshot = await fetchPlanAccessSnapshot();
   const { subscription, cachedPaidSubscription: nextCache } =
-    await resolveSubscriptionWithRevenueCatPriority(baseSnapshot, cachedPaidSubscription);
+    await resolveSubscriptionWithRevenueCatPriority(baseSnapshot, cachedPaidSubscription, {
+      isAuthenticated,
+    });
   const snapshot = resolveEffectiveSnapshot(baseSnapshot, subscription);
 
   logAccessState(phase, subscription, baseSnapshot, snapshot);
@@ -143,7 +146,7 @@ export function SubscriptionEngineProvider({
 
     setLoading(true);
     try {
-      const next = await loadAccessState(cachedPaidSubscriptionRef.current, 'refresh');
+      const next = await loadAccessState(cachedPaidSubscriptionRef.current, 'refresh', true);
       applyAccessState(next.subscription, next.snapshot, next.cachedPaidSubscription);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Subscription refresh failed';
@@ -160,7 +163,7 @@ export function SubscriptionEngineProvider({
     if (!userId) return;
 
     try {
-      const next = await loadAccessState(cachedPaidSubscriptionRef.current, phase);
+      const next = await loadAccessState(cachedPaidSubscriptionRef.current, phase, true);
       applyAccessState(next.subscription, next.snapshot, next.cachedPaidSubscription);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Usage refresh failed';
@@ -195,7 +198,7 @@ export function SubscriptionEngineProvider({
 
       if (!cancelled) {
         try {
-          const next = await loadAccessState(null, 'bootstrap');
+          const next = await loadAccessState(null, 'bootstrap', true);
           if (!cancelled) {
             applyAccessState(next.subscription, next.snapshot, next.cachedPaidSubscription);
           }

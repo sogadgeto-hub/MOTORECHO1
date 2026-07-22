@@ -14,6 +14,10 @@ import {
   isSubscriptionActive,
 } from '../subscription';
 import {
+  applyInternalBetaPremiumSnapshot,
+  isInternalBetaPremiumSubscription,
+} from '../internal-beta-premium';
+import {
   configureRevenueCat,
   isRevenueCatAvailable,
   isRevenueCatDisabledForInternalBeta,
@@ -208,6 +212,10 @@ export function mergeSnapshotWithSubscription(
   snapshot: PlanAccessSnapshot,
   subscription: SubscriptionInfo
 ): PlanAccessSnapshot {
+  if (isInternalBetaPremiumSubscription(subscription)) {
+    return applyInternalBetaPremiumSnapshot(snapshot);
+  }
+
   const hasPaidEntitlement =
     hasActiveRevenueCatEntitlement(subscription) ||
     (hasPremiumAccess(subscription) && subscription.provider === 'revenuecat');
