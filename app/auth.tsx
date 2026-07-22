@@ -3,20 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingVi
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FadeInView } from '@/components/FadeInView';
+import { SafeScreen } from '@/components/SafeScreen';
 import { Activity, Mail, Lock, Eye, EyeOff, ArrowLeft, User, CheckSquare, Square } from 'lucide-react-native';
 import { MD3Colors, Colors, Spacing, Radii } from '@/lib/theme';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { supabase } from '@/lib/supabase';
 
 export default function AuthScreen() {
   const router = useRouter();
   const { signIn, signUp } = useAuth();
   const { t } = useI18n();
-  const params = useLocalSearchParams<{ selectedPlan?: string; mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string }>();
 
   const initialMode = params.mode === 'signup' ? 'signup' : 'signin';
-  const selectedPlan = (params.selectedPlan ?? 'free') as 'free' | 'premium' | 'garage';
+  const { contentTop } = useScreenInsets();
 
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
@@ -76,7 +78,6 @@ export default function AuthScreen() {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             await supabase.from('profiles').update({
-              plan_type: selectedPlan,
               allow_ai_training: allowAiTraining,
             }).eq('id', session.user.id);
           }
@@ -93,13 +94,14 @@ export default function AuthScreen() {
   const buttonText = isSignUp ? t.auth.signUp.createAccount : t.auth.signIn.signInButton;
 
   return (
+    <SafeScreen edges={['top', 'bottom']} style={styles.safeRoot}>
     <View style={styles.container}>
       <LinearGradient colors={['#06080F', MD3Colors.background, '#0A0A0E']} style={StyleSheet.absoluteFill} />
       <View style={styles.ambientTop} />
       <View style={styles.ambientBottom} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: contentTop }]} keyboardShouldPersistTaps="handled">
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
             <ArrowLeft size={24} color={MD3Colors.onSurfaceVariant} strokeWidth={2} />
           </TouchableOpacity>
@@ -111,13 +113,6 @@ export default function AuthScreen() {
             </View>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>
-            {isSignUp && selectedPlan !== 'free' && (
-              <View style={styles.planPill}>
-                <Text style={styles.planPillText}>
-                  {selectedPlan === 'premium' ? `⭐ ${t.auth.signUp.premiumSelected}` : `🏢 ${t.auth.signUp.garageProSelected}`}
-                </Text>
-              </View>
-            )}
           </FadeInView>
 
           <FadeInView delay={200} style={styles.form}>
@@ -274,6 +269,7 @@ export default function AuthScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
+    </SafeScreen>
   );
 }
 
@@ -301,6 +297,9 @@ function CheckboxRow({ checked, onToggle, label, required, muted }: {
 }
 
 const styles = StyleSheet.create({
+  safeRoot: {
+    backgroundColor: MD3Colors.background,
+  },
   container: { flex: 1 },
   ambientTop: {
     position: 'absolute', top: -120, right: -60, width: 260, height: 260, borderRadius: 130,
@@ -310,7 +309,7 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: -80, left: -80, width: 240, height: 240, borderRadius: 120,
     backgroundColor: 'rgba(0,166,251,0.04)',
   },
-  scrollContent: { paddingTop: 60, paddingHorizontal: Spacing.lg, flexGrow: 1 },
+  scrollContent: { paddingHorizontal: Spacing.lg, flexGrow: 1 },
   backButton: { padding: Spacing.sm, marginBottom: Spacing.lg, width: 44 },
   headerSection: { marginBottom: Spacing.xl },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.lg },

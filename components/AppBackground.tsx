@@ -1,9 +1,18 @@
 import { View, StyleSheet } from 'react-native';
+import { useScreenInsets } from '@/hooks/useScreenInsets';
 import { MD3Colors } from '@/lib/theme';
 
-export function AppBackground({ children }: { children: React.ReactNode }) {
+type AppBackgroundProps = {
+  children: React.ReactNode;
+  /** Applique l'inset haut (barre d'état). Désactiver si SafeScreen parent gère déjà le haut. */
+  safeTop?: boolean;
+};
+
+export function AppBackground({ children, safeTop = true }: AppBackgroundProps) {
+  const { top } = useScreenInsets();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, safeTop && top > 0 ? { paddingTop: top } : null]}>
       {/* Background decorative blobs */}
       <View style={styles.blobTop} />
       <View style={styles.blobBottom} />

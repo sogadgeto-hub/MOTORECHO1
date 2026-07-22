@@ -1,21 +1,25 @@
 import { Tabs } from 'expo-router';
 import { Car, Mic, BarChart3, Settings } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MD3Colors } from '@/lib/theme';
 import { useI18n } from '@/lib/i18n';
+import { TAB_BAR_BODY_HEIGHT } from '@/hooks/useScreenInsets';
 
 export default function TabLayout() {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = TAB_BAR_BODY_HEIGHT + insets.bottom + 8;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(8,15,16,0.8)',
+          backgroundColor: 'rgba(8,15,16,0.98)',
           borderTopColor: 'rgba(255,255,255,0.1)',
           borderTopWidth: 1,
-          height: 72,
-          paddingBottom: 12,
+          height: tabBarHeight,
+          paddingBottom: insets.bottom + 8,
           paddingTop: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -8 },

@@ -1,8 +1,33 @@
 import { fetchVehicles } from './db';
 import { supabase } from './supabase';
+import { isBetaDiagnosticsEnabled } from './beta-diagnostics';
 import type { Profile } from './auth';
 
-export type PostOnboardingRoute = '/(tabs)' | '/vehicle-setup';
+export type PostOnboardingRoute = '/(tabs)' | '/vehicle-setup' | '/plans' | '/payment';
+
+export type OnboardingRouteName = 'plans' | 'payment' | 'vehicle-setup';
+
+/** Première étape onboarding pour un utilisateur déjà authentifié. */
+export function resolveOnboardingInitialRoute(profile: Profile): OnboardingRouteName {
+  if (profile.plan_type === 'premium' || profile.plan_type === 'garage') {
+    if (isBetaDiagnosticsEnabled()) {
+      return 'vehicle-setup';
+    }
+    return 'payment';
+  }
+
+  return 'plans';
+}
+
+/** Route après sélection du plan (onboarding authentifié). */
+export function resolveRouteAfterPlanSelection(
+  plan: 'free' | 'premium' | 'garage'
+): 'payment' | 'vehicle-setup' {
+  if (plan !== 'free' && !isBetaDiagnosticsEnabled()) {
+    return 'payment';
+  }
+  return 'vehicle-setup';
+}
 
 /** Route après paiement / skip onboarding — évite de renvoyer vers payment en boucle. */
 export async function resolvePostOnboardingRoute(

@@ -3,16 +3,23 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FadeInView } from '@/components/FadeInView';
+import { SafeScreen } from '@/components/SafeScreen';
 import { Check, Crown, Star, Building2, Activity } from 'lucide-react-native';
 import { MD3Colors, Spacing, Radii } from '@/lib/theme';
+import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { useScreenInsets } from '@/hooks/useScreenInsets';
+import { resolveRouteAfterPlanSelection } from '@/lib/onboarding-flow';
 
 type PlanKey = 'free' | 'premium' | 'garage';
 
 export default function PlansScreen() {
   const router = useRouter();
+  const { user, updatePlan } = useAuth();
   const { t } = useI18n();
+  const { contentTop } = useScreenInsets();
   const [selected, setSelected] = useState<PlanKey>('free');
+  const [loading, setLoading] = useState(false);
 
   const PLANS: Array<{
     key: PlanKey;
@@ -66,17 +73,33 @@ export default function PlansScreen() {
     garage: t.plans.buttons.garage,
   };
 
-  function handleContinue(planKey: PlanKey) {
-    router.push({ pathname: '/auth', params: { selectedPlan: planKey, mode: 'signup' } });
+  async function handleContinue(planKey: PlanKey) {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const { error } = await updatePlan(planKey);
+      if (error) return;
+
+      const nextRoute = resolveRouteAfterPlanSelection(planKey);
+      if (nextRoute === 'payment') {
+        router.replace({ pathname: '/payment', params: { plan: planKey } });
+      } else {
+        router.replace('/vehicle-setup');
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
+    <SafeScreen edges={['top', 'bottom']} style={styles.safeRoot}>
     <View style={styles.container}>
       <LinearGradient colors={['#06080F', MD3Colors.background, '#080E10']} style={StyleSheet.absoluteFill} />
       <View style={styles.ambientTop} />
       <View style={styles.ambientBottom} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: contentTop }]} showsVerticalScrollIndicator={false}>
         <FadeInView delay={0} style={styles.header}>
           <View style={styles.logoRow}>
             <Activity size={22} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
@@ -144,7 +167,8 @@ export default function PlansScreen() {
 
                 <TouchableOpacity
                   style={[styles.planButton, { borderColor: p.color }]}
-                  onPress={() => { setSelected(p.key); handleContinue(p.key); }}
+                  onPress={() => { setSelected(p.key); void handleContinue(p.key); }}
+                  disabled={loading}
                   activeOpacity={0.85}
                 >
                   {p.key === 'premium' ? (
@@ -171,20 +195,17 @@ export default function PlansScreen() {
           <Text style={styles.footNote}>{t.plans.changePlanAnytime}</Text>
         </FadeInView>
 
-        <FadeInView delay={550} style={styles.signInRow}>
-          <Text style={styles.signInText}>{t.plans.alreadyAccount}</Text>
-          <TouchableOpacity onPress={() => router.push('/auth')} activeOpacity={0.7}>
-            <Text style={styles.signInLink}>{t.plans.signIn}</Text>
-          </TouchableOpacity>
-        </FadeInView>
-
         <View style={styles.spacer} />
       </ScrollView>
     </View>
+    </SafeScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  safeRoot: {
+    backgroundColor: MD3Colors.background,
+  },
   container: { flex: 1 },
   ambientTop: {
     position: 'absolute', top: -80, right: -60, width: 260, height: 260, borderRadius: 130,
@@ -195,7 +216,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,166,251,0.04)',
   },
   scrollContent: {
-    paddingTop: 60,
     paddingHorizontal: Spacing.lg,
     paddingBottom: 40,
     flexGrow: 1,

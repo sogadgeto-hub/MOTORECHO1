@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts } from 'expo-font';
 import {
@@ -19,9 +22,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { SubscriptionEngineProvider } from '@/lib/subscription-engine/context';
 import { AppLoadingScreen } from '@/components/AppLoadingScreen';
-import { Animation } from '@/lib/theme';
-import { I18nProvider } from '@/lib/i18n';
-import { isBetaDiagnosticsEnabled } from '@/lib/beta-diagnostics';
+import { Animation, MD3Colors } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -49,21 +50,18 @@ function RootNavigator() {
       {!user ? (
         <Stack screenOptions={stackOptions}>
           <Stack.Screen name="splash" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
-          <Stack.Screen name="plans" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
+          <Stack.Screen name="welcome" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
           <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         </Stack>
       ) : profile && !profile.onboarding_completed ? (
         <Stack
           screenOptions={stackOptions}
-          initialRouteName={
-            isBetaDiagnosticsEnabled() || profile.plan_type === 'free'
-              ? 'vehicle-setup'
-              : 'payment'
-          }
+          initialRouteName={resolveOnboardingInitialRoute(profile)}
         >
-          <Stack.Screen name="vehicle-setup" options={{ headerShown: false }} />
+          <Stack.Screen name="plans" options={{ headerShown: false }} />
           <Stack.Screen name="payment" options={{ headerShown: false }} />
+          <Stack.Screen name="vehicle-setup" options={{ headerShown: false }} />
         </Stack>
       ) : (
         <Stack screenOptions={stackOptions}>
@@ -98,16 +96,24 @@ export default function RootLayout() {
     'HankenGrotesk-Bold': HankenGrotesk_700Bold,
   });
 
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      void SystemUI.setBackgroundColorAsync(MD3Colors.background);
+    }
+  }, []);
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
 
   return (
-    <I18nProvider>
-      <AuthProvider>
-        <RootNavigator />
-        <StatusBar style="light" />
-      </AuthProvider>
-    </I18nProvider>
+    <SafeAreaProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <RootNavigator />
+          <StatusBar style="light" backgroundColor={MD3Colors.background} translucent={false} />
+        </AuthProvider>
+      </I18nProvider>
+    </SafeAreaProvider>
   );
 }

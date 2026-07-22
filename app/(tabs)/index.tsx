@@ -28,9 +28,11 @@ import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { useI18n } from '@/lib/i18n';
 import { stripRecordingQualityMarker } from '@/lib/audio-quality/recommendation';
 import { navigateToVehicleHealth } from '@/lib/navigation';
+import { useScreenInsets } from '@/hooks/useScreenInsets';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { tabBarScrollPadding } = useScreenInsets();
   const { user, profile, signOut } = useAuth();
   const { plan, snapshot, loading: planLoading, isFreePlan } = useSubscriptionAccess(user?.id);
   const { t, language } = useI18n();
@@ -109,7 +111,7 @@ export default function HomeScreen() {
   return (
     <AppBackground>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarScrollPadding }]}
         refreshControl={<RefreshControl refreshing={loading && !showInitialSkeleton} onRefresh={load} tintColor={MD3Colors.primaryFixedDim} />}
         showsVerticalScrollIndicator={false}
       >
@@ -399,7 +401,7 @@ function getStatusColor(result: string) {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingTop: 0, paddingBottom: 120 },
+  scrollContent: { paddingTop: 0, paddingHorizontal: Spacing.lg },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
