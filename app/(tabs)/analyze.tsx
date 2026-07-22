@@ -10,12 +10,10 @@ import { PressableScale } from '@/components/PressableScale';
 import { Animation, Colors, IconStroke, MD3Colors, Palette, Spacing, TouchTarget } from '@/lib/theme';
 import { getPrimaryVehicle, Vehicle } from '@/lib/db';
 import { useI18n } from '@/lib/i18n';
-import { useScreenInsets } from '@/hooks/useScreenInsets';
 
 export default function AnalyzeScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const { tabBarScrollPadding } = useScreenInsets();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -47,7 +45,7 @@ export default function AnalyzeScreen() {
 
   return (
     <AppBackground>
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarScrollPadding }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{t.analyze.title}</Text>
         </View>
@@ -109,7 +107,7 @@ export default function AnalyzeScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: Spacing.containerMobile },
+  scrollContent: { paddingTop: 56, paddingBottom: 100, paddingHorizontal: Spacing.containerMobile },
   header: { marginBottom: Spacing.lg },
   headerTitle: {
     fontFamily: 'HankenGrotesk-Bold',

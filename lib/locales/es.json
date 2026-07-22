@@ -24,12 +24,6 @@
   "splash": {
     "tagline": "Diagnóstico de motor por inteligencia artificial."
   },
-  "welcome": {
-    "returningUser": "¿Ya tienes una cuenta?",
-    "firstTimeUser": "¿Primera vez con MotorEcho?",
-    "signInButton": "Iniciar sesión",
-    "createAccountButton": "Crear mi cuenta"
-  },
   "tabs": {
     "garage": "Garaje",
     "scan": "Escanear",

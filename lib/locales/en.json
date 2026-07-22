@@ -24,12 +24,6 @@
   "splash": {
     "tagline": "AI-powered engine sound diagnostics."
   },
-  "welcome": {
-    "returningUser": "Already have an account?",
-    "firstTimeUser": "First time using MotorEcho?",
-    "signInButton": "Sign in",
-    "createAccountButton": "Create my account"
-  },
   "tabs": {
     "garage": "Garage",
     "scan": "Scan",

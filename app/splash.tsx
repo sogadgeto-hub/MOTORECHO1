@@ -5,7 +5,6 @@ import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { MD3Colors } from '@/lib/theme';
 import { Activity } from 'lucide-react-native';
-import { SafeScreen } from '@/components/SafeScreen';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -32,14 +31,13 @@ export default function SplashScreen() {
     if (loading || user) return;
 
     const timer = setTimeout(() => {
-      router.replace('/welcome');
+      router.replace('/plans');
     }, 2000);
 
     return () => clearTimeout(timer);
   }, [loading, user, router]);
 
   return (
-    <SafeScreen edges={['top', 'bottom']} style={styles.safeRoot}>
     <View style={styles.container}>
       <View style={styles.ambientTop} />
       <View style={styles.ambientBottom} />
@@ -63,7 +61,6 @@ export default function SplashScreen() {
         <PulseDot delay={400} />
       </View>
     </View>
-    </SafeScreen>
   );
 }
 
@@ -85,9 +82,6 @@ function PulseDot({ delay }: { delay: number }) {
 }
 
 const styles = StyleSheet.create({
-  safeRoot: {
-    backgroundColor: MD3Colors.background,
-  },
   container: {
     flex: 1,
     backgroundColor: MD3Colors.background,

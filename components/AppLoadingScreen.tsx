@@ -2,14 +2,11 @@ import { View, StyleSheet } from 'react-native';
 import { AppBackground } from '@/components/AppBackground';
 import { SkeletonDashboard } from '@/components/Skeleton';
 import { Spacing } from '@/lib/theme';
-import { useScreenInsets } from '@/hooks/useScreenInsets';
 
 export function AppLoadingScreen() {
-  const { contentTop } = useScreenInsets();
-
   return (
-    <AppBackground safeTop={false}>
-      <View style={[styles.container, { paddingTop: contentTop }]}>
+    <AppBackground>
+      <View style={styles.container}>
         <SkeletonDashboard />
       </View>
     </AppBackground>
@@ -19,6 +16,7 @@ export function AppLoadingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 60,
     paddingHorizontal: Spacing.lg,
   },
 });
