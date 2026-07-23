@@ -13,10 +13,9 @@ export default function AuthScreen() {
   const router = useRouter();
   const { signIn, signUp } = useAuth();
   const { t } = useI18n();
-  const params = useLocalSearchParams<{ selectedPlan?: string; mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string }>();
 
   const initialMode = params.mode === 'signup' ? 'signup' : 'signin';
-  const selectedPlan = (params.selectedPlan ?? 'free') as 'free' | 'premium' | 'garage';
 
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
@@ -76,7 +75,6 @@ export default function AuthScreen() {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             await supabase.from('profiles').update({
-              plan_type: selectedPlan,
               allow_ai_training: allowAiTraining,
             }).eq('id', session.user.id);
           }
@@ -111,13 +109,6 @@ export default function AuthScreen() {
             </View>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>
-            {isSignUp && selectedPlan !== 'free' && (
-              <View style={styles.planPill}>
-                <Text style={styles.planPillText}>
-                  {selectedPlan === 'premium' ? `⭐ ${t.auth.signUp.premiumSelected}` : `🏢 ${t.auth.signUp.garageProSelected}`}
-                </Text>
-              </View>
-            )}
           </FadeInView>
 
           <FadeInView delay={200} style={styles.form}>

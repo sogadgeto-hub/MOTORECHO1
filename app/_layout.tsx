@@ -22,6 +22,7 @@ import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 import { Animation } from '@/lib/theme';
 import { I18nProvider } from '@/lib/i18n';
 import { isBetaDiagnosticsEnabled } from '@/lib/beta-diagnostics';
+import { resolveOnboardingInitialRoute } from '@/lib/onboarding-flow';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -49,21 +50,18 @@ function RootNavigator() {
       {!user ? (
         <Stack screenOptions={stackOptions}>
           <Stack.Screen name="splash" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
-          <Stack.Screen name="plans" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
+          <Stack.Screen name="welcome" options={{ headerShown: false, animation: 'fade', animationDuration: Animation.normal }} />
           <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         </Stack>
       ) : profile && !profile.onboarding_completed ? (
         <Stack
           screenOptions={stackOptions}
-          initialRouteName={
-            isBetaDiagnosticsEnabled() || profile.plan_type === 'free'
-              ? 'vehicle-setup'
-              : 'payment'
-          }
+          initialRouteName={resolveOnboardingInitialRoute(profile)}
         >
-          <Stack.Screen name="vehicle-setup" options={{ headerShown: false }} />
+          <Stack.Screen name="plans" options={{ headerShown: false }} />
           <Stack.Screen name="payment" options={{ headerShown: false }} />
+          <Stack.Screen name="vehicle-setup" options={{ headerShown: false }} />
         </Stack>
       ) : (
         <Stack screenOptions={stackOptions}>
