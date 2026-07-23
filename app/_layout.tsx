@@ -16,6 +16,7 @@ import {
   HankenGrotesk_700Bold,
 } from '@expo-google-fonts/hanken-grotesk';
 import * as SplashScreen from 'expo-splash-screen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { SubscriptionEngineProvider } from '@/lib/subscription-engine/context';
 import { AppLoadingScreen } from '@/components/AppLoadingScreen';
@@ -101,11 +102,13 @@ export default function RootLayout() {
   }
 
   return (
-    <I18nProvider>
-      <AuthProvider>
-        <RootNavigator />
-        <StatusBar style="light" />
-      </AuthProvider>
-    </I18nProvider>
+    <SafeAreaProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <RootNavigator />
+          <StatusBar style="light" />
+        </AuthProvider>
+      </I18nProvider>
+    </SafeAreaProvider>
   );
 }

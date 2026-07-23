@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Activity } from 'lucide-react-native';
 import { FadeInView } from '@/components/FadeInView';
 import { MD3Colors, Spacing, Radii } from '@/lib/theme';
@@ -9,6 +10,8 @@ import { useI18n } from '@/lib/i18n';
 export default function WelcomeScreen() {
   const router = useRouter();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom + Spacing.lg;
 
   return (
     <View style={styles.container}>
@@ -16,7 +19,7 @@ export default function WelcomeScreen() {
       <View style={styles.ambientTop} />
       <View style={styles.ambientBottom} />
 
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingBottom: bottomPadding }]}>
         <FadeInView delay={0} style={styles.hero}>
           <View style={styles.iconCircle}>
             <Activity size={36} color={MD3Colors.primaryFixedDim} strokeWidth={2} />
@@ -85,13 +88,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 60,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 40,
-    justifyContent: 'space-between',
   },
   hero: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: Spacing.lg,
     gap: 12,
   },
   iconCircle: {
